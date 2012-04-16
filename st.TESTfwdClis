@@ -1,0 +1,36 @@
+#!/bin/bash -f
+# bashified!
+# This is the startup file for fwdCliS which receives msgs from other machines
+# like MCC and forwards them to cmlog and/or iocLogAndFwdServer.
+#
+# Ron MacKenzie 11/05/07
+# Mods:
+#
+# TEST VERSION TO SEND TO TEST iocLogServer
+export LCLS_ROOT=/afs/slac/g/lcls
+if [ -f ${LCLS_ROOT}/epics/setup/epicsReset.bash ]; then
+    echo sourcing!
+    . ${LCLS_ROOT}/epics/setup/epicsReset.bash
+fi
+
+#
+# These are set in ENVS, but if you want to set to non-standard loc do it here.
+#
+export EPICS_IOC_LOG_PORT=7004
+#export EPICS_IOC_LOG_INET=134.79.216.22 
+export EPICS_IOC_LOG_INET=134.79.151.22
+
+echo $HOSTNAME
+
+#if [ $HOSTNAME == "cdlx03" ]; then
+if [ $HOSTNAME == "lcls-prod02" ]; then
+  echo starting...
+  #jrock test version
+  #/u/cd/jrock/work_iocLogServer/cmlogFwdClis/fwdCliS-WORKING-PROTOTYPE
+  #fwdCliS-WORKING-PROTOTYPE
+  ./fwdCliS
+else
+#  echo NOT ON cdlx03!
+  echo NOT ON lcls-prod02!
+fi
+#
