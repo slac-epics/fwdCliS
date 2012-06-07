@@ -188,6 +188,7 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
     fwd_cache_ts   *cache_ps;         /* data about the child pointed to */
 
     char cmlog_name[] = "fwdCliS";    /* pass this name to cmlog as our name */
+	char thefacility[12];
 
     /** USE DEFINES FOR THESE SIZES */
 
@@ -691,11 +692,20 @@ if (LOG_DEBUG)
                sprintf (severity, "%4.4s", err_msg_ps->fwd_err_msg_s.severity_char);
            trim(severity);
 
-
+				/* prepend SLC if coming from mcc or MCC host */
+				/* copy facility to longer string */				
+				if ((strncmp(host, "MCC", 3)==0) || (strncmp(host, "mcc", 3)==0)) {
+					strcpy(thefacility, "SLC-");
+					strcat(thefacility, facility);
+					printf("host is %s, update current facility=%s to %s\n", host, facility, thefacility);
+				} else {
+					strcpy(thefacility, facility);
+				}					
 
 /* TO DO: MORE TAGS! ? */
                /* NOW SEND THE WHOLE MESSAGE WITH TAGS */
-	       sprintf(output, "fac=%s host=%s user=%s %s\n", facility, host, user, err_msg_ps->fwd_err_msg_s.msg_str);
+/*	       sprintf(output, "fac=%s host=%s user=%s %s\n", facility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); */
+	       sprintf(output, "fac=%s host=%s user=%s %s\n", thefacility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); 
 /* THIS IS OUTPUT FOR SLC TESTING 9/27/11 */
 fprintf(stderr, "===> SENDING TO LOGSERVER: %s", output);
                /* USED TO BE MESSAGE ONLY
