@@ -1,4 +1,4 @@
-TOP=../..
+TOP=../../..
 include $(TOP)/configure/CONFIG
 
 PROD_HOST_DEFAULT = fwdCliS
