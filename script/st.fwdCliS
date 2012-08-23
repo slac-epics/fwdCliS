@@ -1,0 +1,45 @@
+#!/bin/bash -f
+# bashified!
+# This is the startup file for fwdCliS which receives msgs from other machines
+# like MCC and forwards them to cmlog and/or iocLogAndFwdServer.
+#
+# Ron MacKenzie 11/05/07
+# Mods:
+#
+# TEST VERSION TO SEND TO TEST iocLogServer
+#export ACCTEST_ROOT=/afs/slac/g/acctest
+#if [ -f ${ACCTEST_ROOT}/epics/setup/epicsReset_acctest.bash ]; then
+#    echo sourcing!
+#    . ${ACCTEST_ROOT}/epics/setup/epicsReset_acctest.bash
+#fi
+
+#export EPICS_SETUP=/usr/local/lcls/epics/setup
+#if [ -f ${EPICS_SETUP}/epicsReset.bash ]; then
+#    echo sourcing!
+#    . ${EPICS_SETUP}/epicsReset.bash
+#fi
+
+source /usr/local/lcls/epics/setup/go_epics_3-14-12.bash
+
+#
+# These are set in ENVS, but if you want to set to non-standard loc do it here.
+#
+#export EPICS_IOC_LOG_PORT=7004
+#export EPICS_IOC_LOG_INET=134.79.216.22 
+#export EPICS_IOC_LOG_INET=134.79.151.22
+
+echo $HOSTNAME
+
+#if [ $HOSTNAME == "cdlx03" ]; then
+if [ $HOSTNAME == "lcls-daemon2" ]; then
+  echo starting...
+#  cd /afs/slac/g/acctest/tools/fwdCliS
+  cd $EPICS_EXTENSIONS/bin/linux-x86
+  ./fwdCliS >& /dev/null &
+  #./fwdCliS > /tmp/fwdCliS.out 2>&1 
+else
+#  echo NOT ON cdlx03!
+  echo NOT ON lcls-daemon1!
+fi
+#
+
