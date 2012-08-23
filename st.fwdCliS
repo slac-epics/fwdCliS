@@ -13,11 +13,13 @@
 #    . ${ACCTEST_ROOT}/epics/setup/epicsReset_acctest.bash
 #fi
 
-export EPICS_SETUP=/usr/local/facet/epics/setup
-if [ -f ${EPICS_SETUP}/epicsReset_facet.bash ]; then
-    echo sourcing!
-    . ${EPICS_SETUP}/epicsReset_facet.bash
-fi
+#export EPICS_SETUP=/usr/local/lcls/epics/setup
+#if [ -f ${EPICS_SETUP}/epicsReset.bash ]; then
+#    echo sourcing!
+#    . ${EPICS_SETUP}/epicsReset.bash
+#fi
+
+source /usr/local/lcls/epics/setup/go_epics_3-14-12.bash
 
 #
 # These are set in ENVS, but if you want to set to non-standard loc do it here.
@@ -29,14 +31,15 @@ fi
 echo $HOSTNAME
 
 #if [ $HOSTNAME == "cdlx03" ]; then
-if [ $HOSTNAME == "facet-daemon1" ]; then
+if [ $HOSTNAME == "lcls-daemon2" ]; then
   echo starting...
 #  cd /afs/slac/g/acctest/tools/fwdCliS
-  cd $TOOLS/fwdCliS
-  ./fwdCliS >& /dev/null &
+  cd $EPICS_EXTENSIONS/bin/linux-x86
+#  ./fwdCliS >& /dev/null &
+	 ./fwdCliS 
 else
 #  echo NOT ON cdlx03!
-  echo NOT ON facet-daemon1!
+  echo NOT ON lcls-daemon1!
 fi
 #
 
