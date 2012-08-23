@@ -65,6 +65,7 @@ static char *version_info = "fwdCliS.c 1.0 07/30/99, 07/30/99";
 #ifdef USE_LOGSERVER
 #include "errlog.h"       /* for epics errlogPrintf logging to iocLogServer */
 #include "logClient.h"
+#include "envDefs.h"
 #else
 #include <cmlog.h>
 #endif
@@ -1116,15 +1117,29 @@ int connect_logServer(void)
   unsigned short server_port;
   struct hostent *hp;
   char* temp_p;
+  char host_ip[100];
+  char *pstring;
+  struct in_addr iaddr;
 
   char dummy_a[10];
 
   logServer_connected_ = 0;  // DEBUG How does one delete the old logserver?
 
 /*  hp = gethostbyname("cdlx03"); */
-  hp = gethostbyname("lcls-prod02");
+/*  hp = gethostbyname("lcls-prod02"); */
+
+	pstring = envGetConfigParam(
+			&EPICS_IOC_LOG_INET, 
+			sizeof host_ip,
+			host_ip);
+
+  	inet_aton(host_ip, &iaddr);
+
+	hp = gethostbyaddr((const void*)&iaddr, strlen(host_ip), AF_INET);
+
+
   if (hp == NULL) {
-                fprintf(stderr, "cmlogClient: iocLogServer host unknown\n");
+                fprintf(stderr, "iocLogServer host unknown for %s, host_ip len=%d\n", host_ip, strlen(host_ip));
 		return 0;
   }
   else {
