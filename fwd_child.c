@@ -201,7 +201,7 @@ typedef struct              /* Typedef for the thing that holds error message*/
   char          facility[40];
   char          host[16];
 //  char          user[4];
-  char          user[16];
+  char          user[40];
   int4u         severity_int;        /* integer form of severity     */
   char          severity_char[4];    /* e.g. info, warn, err, ...    */
   char          error_code[20];        
@@ -627,7 +627,7 @@ if (LOG_DEBUG)
                sprintf (facility, "%-.39s", err_msg_ps->fwd_err_msg_s.facility);
                trim(facility);
                /* Null terminate the user */  
-               sprintf (user, "%-.15s", err_msg_ps->fwd_err_msg_s.user);
+               sprintf (user, "%-.39s", err_msg_ps->fwd_err_msg_s.user);
                trim(user);
 	           /* Convert the unix time we were passed to host format. */
                temp_time = htonl(err_msg_ps->fwd_err_msg_s.time); 
@@ -646,7 +646,7 @@ if (LOG_DEBUG)
                fprintf(stderr, "Buffer host is: %15.15s \n",
                        err_msg_ps->fwd_err_msg_s.host);
 
-               fprintf(stderr, "Buffer user is: %15.15s \n",
+               fprintf(stderr, "Buffer user is: %39.39s \n",
                        err_msg_ps->fwd_err_msg_s.user);
 
                fprintf(stderr, "Buffer severity char is: %4.4s \n",
