@@ -197,10 +197,10 @@ typedef struct              /* Typedef for the thing that holds error message*/
 {                           /* from vms.  The vms client sender has same. */
   /****  char          time[8];  ****/
   time_t        time;                /* unix time in network order */
-//  char          facility[8];
+/**  char          facility[8]; */
   char          facility[40];
   char          host[16];
-//  char          user[4];
+/**  char          user[4]; */
   char          user[40];
   int4u         severity_int;        /* integer form of severity     */
   char          severity_char[4];    /* e.g. info, warn, err, ...    */
@@ -237,8 +237,9 @@ err_msg_ts *err_msg_ps;
     char host[24];
     char facility[40]; /* store facility temporally */
     char severity[8];  /* store severity temp */
-    char user[16];     /* store user temp */
-    char temp_error_code[24]; /* store error code temp. */
+    char user[40];     /* store user temp */
+//    char temp_error_code[24]; /* store error code temp. */
+    char temp_error_code[20]; /* store error code temp. */
     char s[100];  /* store time here temporarally */
 
 
@@ -583,8 +584,21 @@ Is it kinda like an 'ok to proceed flag'? */
  **/
 
                err_msg_ps = (err_msg_ts *)buff_ptr;
+		/*
+		char temp[MAX_MESSAGE_SIZE];
+		strncpy(temp, err_msg_ps, out_len);
+		strcat(temp, "\n");
+		fprintf(stderr, "err_msg_ps=%s\n", err_msg_ps);
+		fprintf(stderr, "temp=%s\n", temp);
+		fprintf(stderr, "temp_hdr_s.len=%x\n", temp_hdr_s.len);        
+		sprintf(temp, "%4s\n", err_msg_ps->msg_hdr_s.source);       
+		fprintf(stderr, "msg_hdr_s=%s\n", temp);  
+		fprintf(stderr, "fwd_hdr_ts=%d, msg_hdr_s=%d fwd_err_msg_s=%d\n", sizeof(fwd_hdr_ts), sizeof(err_msg_ps->msg_hdr_s), sizeof(err_msg_ps->fwd_err_msg_s));
+		fprintf(stderr, "time_t=%d, int=%d\n", sizeof(time_t), sizeof(int));
+		sprintf(temp, "%40s\n", err_msg_ps->fwd_err_msg_s.facility);
+		fprintf(stderr, "temp.facility=%s\n", temp);
+		*/
 
-                 
 		/**DEBUG **/
 if (LOG_DEBUG)
                fprintf(stderr,"Got the msg DATA part, sending to CMLOG SERVER.\n");
@@ -616,28 +630,23 @@ if (LOG_DEBUG)
               
 
                strftime(s,100,"%c",localtime(&temp_time));
-               fprintf(stderr, "strftime is: %28parseTags.28s \n", s);
+               fprintf(stderr, "strftime is: %28.28s \n", s);
 	       }
 	      }
 
 	       /* Null terminate the host. */
                sprintf (host, "%-.15s", err_msg_ps->fwd_err_msg_s.host);
-               trim(host);						
                /* Null terminate the facility */  
                sprintf (facility, "%-.39s", err_msg_ps->fwd_err_msg_s.facility);
-               trim(facility);
                /* Null terminate the user */  
                sprintf (user, "%-.39s", err_msg_ps->fwd_err_msg_s.user);
-               trim(user);
 	           /* Convert the unix time we were passed to host format. */
                temp_time = htonl(err_msg_ps->fwd_err_msg_s.time); 
                /* Fix up the error code DELETE THIS */
                sprintf (temp_error_code, "%20.20s",
                         err_msg_ps->fwd_err_msg_s.error_code);
-               trim(temp_error_code);
                /* Null terminate the servity character value */
                sprintf (severity, "%4.4s", err_msg_ps->fwd_err_msg_s.severity_char);
-               trim(severity);
 
 		if(LOG_DEBUG) {
                fprintf(stderr, "Buffer facility is: %s \n",
@@ -673,9 +682,11 @@ if (LOG_DEBUG)
                if (!logServer_connected_)
 		 connect_logServer();
 
+//fprintf(stderr, "host=%16s, facility=%40s, user=%40s, code=%20s, severity=%4s\n", err_msg_ps->fwd_err_msg_s.host, err_msg_ps->fwd_err_msg_s.facility, err_msg_ps->fwd_err_msg_s.user, err_msg_ps->fwd_err_msg_s.error_code, err_msg_ps->fwd_err_msg_s.severity_char);
+
                char output[1056];
 
-/*               // DO THE NULL TERMINATES FROM ABOVE 
+               // DO THE NULL TERMINATES FROM ABOVE 
 	       // Null terminate the host. 
                sprintf (host, "%-.15s", err_msg_ps->fwd_err_msg_s.host); 
            trim(host);
@@ -685,20 +696,19 @@ if (LOG_DEBUG)
            trim(facility);
 
                // Null terminate the user 
-               sprintf (user, "%-.15s", err_msg_ps->fwd_err_msg_s.user);
+               sprintf (user, "%-.39s", err_msg_ps->fwd_err_msg_s.user);
            trim(user);
 
 	       // Convert the unix time we were passed to host format. 
-               temp_time = htonl(err_msg_ps->fwd_err_msg_s.time); 
+               //temp_time = htonl(err_msg_ps->fwd_err_msg_s.time); 
 
                // Fix up the error code DELETE THIS 
-               sprintf (temp_error_code, "%20.20s",
-                        err_msg_ps->fwd_err_msg_s.error_code);
-
+               sprintf (temp_error_code, "%-.19s", err_msg_ps->fwd_err_msg_s.error_code);
+		trim(temp_error_code);
                // Null terminate the servity character value 
-               sprintf (severity, "%4.4s", err_msg_ps->fwd_err_msg_s.severity_char);
-           trim(severity);
-*/
+               sprintf (severity, "%-.4s", err_msg_ps->fwd_err_msg_s.severity_char);
+		trim(severity);
+
 				/* prepend SLC if coming from mcc or MCC host */
 				/* copy facility to longer string */				
 				if ((strncmp(host, "MCC", 3)==0) || (strncmp(host, "mcc.", 4)==0)) {
@@ -712,11 +722,13 @@ if (LOG_DEBUG)
 
 /* TO DO: MORE TAGS! ? */
                /* NOW SEND THE WHOLE MESSAGE WITH TAGS */
-/*	       sprintf(output, "fac=%s host=%s user=%s %s\n", facility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); 
-	       sprintf(output, "fac=%s host=%s user=%s %s\n", thefacility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); */
-	       sprintf(output, "fac=%s host=%s user=%s severity=%s code=%s time=%s %s\n", thefacility, host, user, severity, temp_error_code, temp_time, err_msg_ps->fwd_err_msg_s.msg_str); 
+/*	       sprintf(output, "fac=%s host=%s user=%s %s\n", facility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); */ 
+	       sprintf(output, "fac=%s host=%s user=%s %s\n", thefacility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); 
+               //char test[1056];
+		//sprintf(test, "fac=%s host=%s user=%s code=%s sevr=%s %s\n", thefacility, host, user, temp_error_code, severity, err_msg_ps->fwd_err_msg_s.msg_str);
+		//fprintf(stderr, "test=%s\n", test);
 /* THIS IS OUTPUT FOR SLC TESTING 9/27/11 */
-fprintf(stderr, "===> SENDING TO LOGSERVER: %s", output);
+		fprintf(stderr, "===> SENDING TO LOGSERVER: %s", output);
                /* USED TO BE MESSAGE ONLY
 	       sprintf(output, "%s\n", err_msg_ps->fwd_err_msg_s.msg_str);
                */
@@ -725,6 +737,16 @@ fprintf(stderr, "===> SENDING TO LOGSERVER: %s", output);
                  logClientSend(id_, output);
                  logClientFlush(id_);
 	       }
+
+		memset(err_msg_ps->fwd_err_msg_s.time, '\0', sizeof(err_msg_ps->fwd_err_msg_s.time));
+		memset(err_msg_ps->fwd_err_msg_s.facility, '\0', sizeof(err_msg_ps->fwd_err_msg_s.facility));
+		memset(err_msg_ps->fwd_err_msg_s.host, '\0', sizeof(err_msg_ps->fwd_err_msg_s.host));
+		memset(err_msg_ps->fwd_err_msg_s.user, '\0', sizeof(err_msg_ps->fwd_err_msg_s.user));
+		memset(err_msg_ps->fwd_err_msg_s.severity_int, '\0', sizeof(err_msg_ps->fwd_err_msg_s.severity_int));
+		memset(err_msg_ps->fwd_err_msg_s.severity_char, '\0', sizeof(err_msg_ps->fwd_err_msg_s.severity_char));
+		memset(err_msg_ps->fwd_err_msg_s.error_code, '\0', sizeof(err_msg_ps->fwd_err_msg_s.error_code));
+		memset(err_msg_ps->fwd_err_msg_s.spare, '\0', sizeof(err_msg_ps->fwd_err_msg_s.spare));
+		memset(err_msg_ps->fwd_err_msg_s.msg_str, '\0', sizeof(err_msg_ps->fwd_err_msg_s.msg_str));
 
 #else
 
