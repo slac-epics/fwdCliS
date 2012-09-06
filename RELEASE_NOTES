@@ -8,6 +8,9 @@
 #  Auth: 24-July-2012, N. Fong         (NIAFONG)
 #  Rev:  dd-mmm-yyyy, Reviewer's Name    (USERNAME)
 #--------------------------------------------------------------
+fwdCliS-R1-2-2: 09/06/2012
+  Fix bug not creating output message.
+
 fwdCliS-R1-2-1: 09/06/2012
   Remove memsets, taking too long.
   Set buffer len to err_msg_ts size instead of trusting incoming len in fwd_hdr_ts.
