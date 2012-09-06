@@ -550,7 +550,7 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 				// sprintf(output, "fac=%s host=%s user=%s %s\n", facility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); */ 
 		       	//sprintf(output, "fac=%s host=%s user=%s %s\n", thefacility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); 
 	            //char test[1056];
-				//sprintf(output, "fac=%s host=%s user=%s code=%s sevr=%s %s\n", thefacility, host, user, temp_error_code, severity, err_msg_ps->fwd_err_msg_s.msg_str);
+				sprintf(output, "fac=%s host=%s user=%s code=%s sevr=%s %s\n", thefacility, host, user, temp_error_code, severity, err_msg_ps->fwd_err_msg_s.msg_str);
 				/* THIS IS OUTPUT FOR SLC TESTING 9/27/11 */
 				fprintf(stderr, "===> SENDING TO LOGSERVER: %s", output);
 
