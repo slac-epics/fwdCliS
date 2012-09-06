@@ -444,8 +444,8 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 			// Is it kinda like an 'ok to proceed flag'? 
             if ((dump_buf == 1) && (out_len > 0)) {
 				// sending structs, so shouldn't buffer always be the same size??
-				out_len = sizeof(err_msg_ts);  // resize out_len to struct size
-				//fprintf(stderr, "dump_buf=%d, out_len=%lu, sizeof(err_msg_ts)=%d\n", dump_buf, out_len, sizeof(err_msg_ts));
+				//out_len = sizeof(err_msg_ts);  // resize out_len to struct size, doesn't work for SLC msgs
+				//fprintf(stderr, "dump_buf=%d, out_len=%lu, sizeof(err_msg_ts)=%d\n", dump_buf, out_len, sizeof(err_msg_ts));				
                 buff_ptr = (char *)calloc (1,out_len);  
               	// RONM changed from malloc 
 				// buff_ptr contains the input from the socket */
@@ -454,15 +454,15 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
                     fwd_child_death (real_ip_port_u);
                 }
 
-/*				// sending structs, so shouldn't buffer always be the same size??
+				// sending structs, but SLC is sending chopping off empty part of message text and sending shorter length in temp_hdr_s.len
                 if (actual_cnt != ntohl(temp_hdr_s.len)) {
                     if (LOG_FATAL) fprintf(stderr,"FWDC: dump data size error\n");
                     fwd_child_death (real_ip_port_u);
                 }
-*/
+
 				 // SEND TO cmlogServer.
 				err_msg_ps = (err_msg_ts *)buff_ptr;
-
+				
 				temp_time = time(NULL);
 				if (LOG_DEBUG) fprintf(stderr, "Current RAW* time is: %d \n", temp_time);
 				temp_time = htonl(err_msg_ps->fwd_err_msg_s.time);
@@ -512,7 +512,7 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 				// make sure connected to oracle
 				if (!logServer_connected_) connect_logServer();
 
-				//fprintf(stderr, "host=%16s, facility=%40s, user=%40s, code=%20s, severity=%4s\n", err_msg_ps->fwd_err_msg_s.host, err_msg_ps->fwd_err_msg_s.facility, err_msg_ps->fwd_err_msg_s.user, err_msg_ps->fwd_err_msg_s.error_code, err_msg_ps->fwd_err_msg_s.severity_char);
+				//fprintf(stderr, "host=%16s, facility=%40s, user=%40s, code=%20s, severity=%4s, msg=%s\n", err_msg_ps->fwd_err_msg_s.host, err_msg_ps->fwd_err_msg_s.facility, err_msg_ps->fwd_err_msg_s.user, err_msg_ps->fwd_err_msg_s.error_code, err_msg_ps->fwd_err_msg_s.severity_char, err_msg_ps->fwd_err_msg_s.msg_str);
 	            char output[1056];
 
 				// DO THE NULL TERMINATES FROM ABOVE 
