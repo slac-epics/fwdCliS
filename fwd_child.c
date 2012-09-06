@@ -193,58 +193,57 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 
     /** USE DEFINES FOR THESE SIZES */
 
-typedef struct              /* Typedef for the thing that holds error message*/
-{                           /* from vms.  The vms client sender has same. */
-  /****  char          time[8];  ****/
-  time_t        time;                /* unix time in network order */
-/**  char          facility[8]; */
-  char          facility[40];
-  char          host[16];
-/**  char          user[4]; */
-  char          user[40];
-  int4u         severity_int;        /* integer form of severity     */
-  char          severity_char[4];    /* e.g. info, warn, err, ...    */
-  char          error_code[20];        
-  char          spare[8];
-  char          msg_str[280];        /*  message string, null terminated. */
-} fwd_err_msg_ts;
+	typedef struct              /* Typedef for the thing that holds error message*/
+	{                           /* from vms.  The vms client sender has same. */
+	  /****  char          time[8];  ****/
+	  time_t        time;                /* unix time in network order */
+	/**  char          facility[8]; */
+	  char          facility[40];
+	  char          host[16];
+	/**  char          user[4]; */
+	  char          user[40];
+	  int4u         severity_int;        /* integer form of severity     */
+	  char          severity_char[4];    /* e.g. info, warn, err, ...    */
+	  char          error_code[20];        
+	  char          spare[8];
+	  char          msg_str[280];        /*  message string, null terminated. */
+	} fwd_err_msg_ts;
 
-/*
-** The world standard msg header common to VAX and micro.
-SHOULD REALLY USE STANDARD INCLUDE FILE BUT IT CONFLICTS WITH FWD_SERVER.H
-*/
+	/*
+	** The world standard msg header common to VAX and micro.
+	SHOULD REALLY USE STANDARD INCLUDE FILE BUT IT CONFLICTS WITH FWD_SERVER.H
+	*/
 
-typedef struct
-{
-   char          source[4];
-   char          dest[4];
-   int4u         timestamp[2];
-   int2u         func;
-   int2u         datalen;
-} msgheader_ts;
-          
+	typedef struct {
+	   char          source[4];
+	   char          dest[4];
+	   int4u         timestamp[2];
+	   int2u         func;
+	   int2u         datalen;
+	} msgheader_ts;
+	          
 
-typedef struct {
-  msgheader_ts msg_hdr_s;             /* sms header */
-  fwd_err_msg_ts fwd_err_msg_s;       /* the error message itself. */
-} err_msg_ts;    /* Holds data part of message which is sms_hdr + err msg. */
-
-
-err_msg_ts *err_msg_ps;
-
-    char message[256];
-
-    char host[24];
-    char facility[40]; /* store facility temporally */
-    char severity[8];  /* store severity temp */
-    char user[40];     /* store user temp */
-//    char temp_error_code[24]; /* store error code temp. */
-    char temp_error_code[20]; /* store error code temp. */
-    char s[100];  /* store time here temporarally */
+	typedef struct {
+	  msgheader_ts msg_hdr_s;             /* sms header */
+	  fwd_err_msg_ts fwd_err_msg_s;       /* the error message itself. */
+	} err_msg_ts;    /* Holds data part of message which is sms_hdr + err msg. */
 
 
+	err_msg_ts *err_msg_ps;
 
-/*********************************  CODE **********************************/
+	char message[256];
+
+	char host[24];
+	char facility[40]; /* store facility temporally */
+	char severity[8];  /* store severity temp */
+	char user[40];     /* store user temp */
+	//char temp_error_code[24]; /* store error code temp. */
+	char temp_error_code[20]; /* store error code temp. */
+	char s[100];  /* store time here temporarally */
+
+
+
+	/*********************************  CODE **********************************/
 
 
 
@@ -259,26 +258,16 @@ err_msg_ts *err_msg_ps;
 
 
 #ifdef USE_LOGSERVER
-
-
     // Connect to epics logServer
     connect_logServer();
-
-
 #else
-    cl = cmlog_open (cmlog_name);
-    if (cl == 0)
-    {
-        if (LOG_FATAL)
-	{
-           fprintf(stderr,"FWDC: cmlog_open failed\n");
-        }
+	cl = cmlog_open (cmlog_name);
+	if (cl == 0) {
+		if (LOG_FATAL) { fprintf(stderr,"FWDC: cmlog_open failed\n"); }
         fwd_child_death (real_ip_port_u);
     }
 
-
-    sprintf (message, "fwdCliS Child process spawned to handle connection\n");
-
+    sprintf(message, "fwdCliS Child process spawned to handle connection\n");
     status = cmlog_logmsg (cl,         /* cmlog_client_t handle */
                            32,         /* verbosity (length) */
                             0,         /* severity     THESE NEED DEFINES*/
@@ -288,45 +277,25 @@ err_msg_ts *err_msg_ps;
                            message);    /* item list for that specifier */
 #endif
 
-    /* 
-     * turn on KEEPALIVE so if the client crashes this task will find out 
-     * and exit
-     */
-    status = setsockopt(sock_fd, SOL_SOCKET, SO_KEEPALIVE,
-                        (char *)&true, sizeof true);
-    if (status == ERROR)
-    {
-        if (LOG_FATAL)
-	{
-           fprintf(stderr,"FWDC: SO_KEEPALIVE option set failed\n");
-        }
+     // turn on KEEPALIVE so if the client crashes this task will find out and exit
+    status = setsockopt(sock_fd, SOL_SOCKET, SO_KEEPALIVE, (char *)&true, sizeof true);
+    if (status == ERROR) {
+        if (LOG_FATAL) { fprintf(stderr,"FWDC: SO_KEEPALIVE option set failed\n"); }
         fwd_child_death (real_ip_port_u);
     }
 
-    /* 
-     * set TCP input and output buffer sizes 
-     */
-    i = MAX_MESSAGE_SIZE * 2;
-    status = setsockopt(sock_fd, SOL_SOCKET, SO_SNDBUF, 
-                        (char *)&i, sizeof(i));
-    if (status < 0)
-    {
-        if (LOG_FATAL)
-	{
-           fprintf(stderr,"FWDC: SO_SNDBUF set failed\n"); 
-        }
+	// set TCP input and output buffer sizes 
+	i = MAX_MESSAGE_SIZE * 2;
+	status = setsockopt(sock_fd, SOL_SOCKET, SO_SNDBUF, (char *)&i, sizeof(i));
+    if (status < 0) {
+        if (LOG_FATAL) { fprintf(stderr,"FWDC: SO_SNDBUF set failed\n"); }
         fwd_child_death (real_ip_port_u);
     }
 
     i = MAX_MESSAGE_SIZE * 2;
-    status = setsockopt(sock_fd, SOL_SOCKET, SO_RCVBUF, 
-                       (char *)&i, sizeof(i));
-    if (status < 0)
-    {
-        if (LOG_FATAL)
-	{
-           fprintf(stderr,"FWDC: SO_RCVBUF set failed\n");
-        }
+    status = setsockopt(sock_fd, SOL_SOCKET, SO_RCVBUF, (char *)&i, sizeof(i));
+    if (status < 0) {
+        if (LOG_FATAL) { fprintf(stderr,"FWDC: SO_RCVBUF set failed\n"); }
         fwd_child_death (real_ip_port_u);
     }
 
@@ -349,23 +318,15 @@ err_msg_ts *err_msg_ps;
      * packet sizes here in the proxy
      */
     i = 1;  /* the off flag */
-    status = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, 
-                       (char *)&i, sizeof(i));
-    if (status < 0)
-    {
-        if (LOG_FATAL)
-	{
-           fprintf(stderr,"FWDC: TCP_NODELAY set failed\n");
-        }
+    status = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&i, sizeof(i));
+    if (status < 0) {
+        if (LOG_FATAL) { fprintf(stderr,"FWDC: TCP_NODELAY set failed\n"); }
         fwd_child_death (real_ip_port_u);
     }
 
-    /*
-     * Tell the user the status of the child connection
-     */
-    if (LOG_INFO)
-    {
-       fprintf(stderr,"FWDC: Recieved connection request \n ");
+    // Tell the user the status of the child connection
+	if (LOG_INFO) {
+       fprintf(stderr,"FWDC: Received connection request \n ");
        /**
        fprintf(stderr,"from addr %x, port %d ", 
                 our_cache_ps->real_ip_port_u.s.ip,
@@ -386,331 +347,195 @@ err_msg_ts *err_msg_ps;
      *
      * We never exit this loop.  We exit through child_death instead.
      */
+    while (1) {
+		//Setup the select call timeout data. 
+		timeout_s.tv_sec = SELECT_TIMEOUT;
+		timeout_s.tv_usec = 0;
 
-
-    while (1)
-    {
-        /*
-         * Setup the select call timeout data. 
-         */
-        timeout_s.tv_sec = SELECT_TIMEOUT;
-        timeout_s.tv_usec = 0;
-
-        /*
-         * Zero descriptors, set desc for new socket, set size then
-         * go see if there is data to read from the socket.
-         */
+		// Zero descriptors, set desc for new socket, set size then go see if there is data to read from the socket.
         FD_ZERO ((fd_set *) &readfds);
-	/*        FD_SET (unix_fd, (fd_set *) &readfds); */
+	    // FD_SET (unix_fd, (fd_set *) &readfds); 
         FD_SET (sock_fd, (fd_set *) &readfds);
         fd_setsize = FD_SETSIZE;
 
-        if ((num_descr = select (fd_setsize, &readfds, NULL, NULL, &timeout_s))
-            == ERROR)
-        {
-            if (LOG_FATAL)
-	    {
-               fprintf(stderr,"FWDC: select error\n");
-            }
+        if ((num_descr = select (fd_setsize, &readfds, NULL, NULL, &timeout_s)) == ERROR) {
+			if (LOG_FATAL) { fprintf(stderr,"FWDC: select error\n"); }
             fwd_child_death (real_ip_port_u);
         }
-
-        if (num_descr == 0)  
-	{
-            if (LOG_FATAL)
-	    {
-           fprintf(stderr,"FWDC: select timeout! exiting...\n");
-            }
+        if (num_descr == 0) {
+            if (LOG_FATAL) { fprintf(stderr,"FWDC: select timeout! exiting...\n"); }
             fwd_child_death (real_ip_port_u);
         }        
-
-
-
-        /*************************************************************/
-
-        /*
-         * If there is I/O pending at the network socket, handle it!
-         * This is data coming INTO the forward server
-         */ 
-	if (LOG_DEBUG) {
-           fprintf(stderr,"\n\n NEW MSG IS HERE***. Select just completed in child.\n");
-	}
-
-        if (FD_ISSET(sock_fd, (fd_set *) &readfds))
-	{
-            if (LOG_DEBUG)
-               fprintf(stderr,"FWDC: Child Message Socket Signal\n");
-
+		
+		//*************************************************************
+		// If there is I/O pending at the network socket, handle it!
+		// This is data coming INTO the forward server
+		if (LOG_DEBUG) { fprintf(stderr,"\n\n NEW MSG IS HERE***. Select just completed in child.\n"); }
+		if (FD_ISSET(sock_fd, (fd_set *) &readfds)) {
+            if (LOG_DEBUG) fprintf(stderr,"FWDC: Child Message Socket Signal\n");
             dump_buf = 0; /* Setup to not dump buffer after header */
 
-	    /*
-             * Get the header information to get buffer alloc size
-             */
-            if (status = tcp_get (sock_fd, (char *)&temp_hdr_s, 
-                                  sizeof(fwd_hdr_ts), &actual_cnt) == ERROR)
-	    {
-                if (LOG_FATAL)
-                   fprintf(stderr,"FWDC: header access error\n");
+            // Get the header information to get buffer alloc size
+            if (status = tcp_get (sock_fd, (char *)&temp_hdr_s, sizeof(fwd_hdr_ts), &actual_cnt) == ERROR) {
+				if (LOG_FATAL) fprintf(stderr,"FWDC: header access error\n");
                 fwd_child_death (real_ip_port_u);
             }
 
-            /*
-             * Check for a wrong length in the forward header.  Hopefully
-             * this is usually a zero length indicating a normal disconnected
-             * socket, anyway close the socket and go away...
-             */
-            if (actual_cnt != sizeof(fwd_hdr_ts))
-	    {
-                if (LOG_FATAL)
-                   fprintf(stderr,"FWDC: header size error\n");
+             // Check for a wrong length in the forward header.  Hopefully
+             // this is usually a zero length indicating a normal disconnected
+             // socket, anyway close the socket and go away...
+            if (actual_cnt != sizeof(fwd_hdr_ts)) {
+                if (LOG_FATAL) fprintf(stderr,"FWDC: header size error\n");
                 fwd_child_death (real_ip_port_u);
             }
 
-            /*
-             * Check that the packet is not too big for us to handle.  If
-	     * it is then we have no choice but to die since the serial
-	     * stream will be corrupt.  One day you could think of finding the
-	     * next good header in the stream and continuing from there.
-             */
-            if (ntohl(temp_hdr_s.len) > MAX_MESSAGE_SIZE)
-	    {
-                fprintf(stderr,"FWDC: Child Message Too BIG! len = %x \n",
-                        ntohl(temp_hdr_s.len));
+			// Check that the packet is not too big for us to handle.  If
+			// it is then we have no choice but to die since the serial
+			// stream will be corrupt.  One day you could think of finding the
+			// next good header in the stream and continuing from there.
+            if (ntohl(temp_hdr_s.len) > MAX_MESSAGE_SIZE) {
+                fprintf(stderr,"FWDC: Child Message Too BIG! len = %x \n", ntohl(temp_hdr_s.len));
                 fwd_child_death (real_ip_port_u);
             }
 
-            if (LOG_DEBUG)
-	    {
+            if (LOG_DEBUG) {
                fprintf(stderr,"FWDC: Child Message Header Verified\n");
                fprintf(stderr,"Child Rx: IP= %x,  port=%x, len=%x, user=%x, cmd=%x, crc=%x \n",
-                            ntohs(temp_hdr_s.ip_port_u.s.ip),
-                            ntohs(temp_hdr_s.ip_port_u.s.port),
-                            ntohl(temp_hdr_s.len),
-                            temp_hdr_s.user,
-                            temp_hdr_s.cmd, 
-                            temp_hdr_s.crc);
+                            ntohs(temp_hdr_s.ip_port_u.s.ip), ntohs(temp_hdr_s.ip_port_u.s.port),
+                            ntohl(temp_hdr_s.len), temp_hdr_s.user, temp_hdr_s.cmd, temp_hdr_s.crc);
             }
 
                
-/*TODO CHECK THIS DUMP_BUF STUFF. */
+			// TODO CHECK THIS DUMP_BUF STUFF. 
 
-            /*
-             * Find out what the user wants us todo with this packet.  Correct
-	     * endian-ness as required
-             */
-if(LOG_DEBUG)
-fprintf(stderr,"**Got the header, The header command funciton is %d \n",
-temp_hdr_s.cmd & (int1u)PX_FUNC_MASK);
+			// Find out what the user wants us todo with this packet.  Correct
+			// endian-ness as required
+			if (LOG_DEBUG) fprintf(stderr,"**Got the header, The header command function is %d \n", temp_hdr_s.cmd & (int1u)PX_FUNC_MASK);
 
-            switch (temp_hdr_s.cmd & (int1u)PX_FUNC_MASK)
-	    {
-              case PX_REGISTER_FUNC:  /* Really the Register Alias command */
-                {
-                    dump_buf = 0;  /* We don't get anything more off sock */ 
-                               
+			switch (temp_hdr_s.cmd & (int1u)PX_FUNC_MASK) {
+				case PX_REGISTER_FUNC:  // Really the Register Alias command 
+                    dump_buf = 0;  // We don't get anything more off sock 
+					//if (LOG_DEBUG) fprintf(stderr, "PX_REGISTER_FUNC=%d\n", temp_hdr_s.cmd & (int1u)PX_FUNC_MASK);
                     break;
-                }
-              case PX_REGISTER_PORT_FUNC:
-                {                  
-                    dump_buf = 1; /* make sure all data is read from socket */
-		  
+				case PX_REGISTER_PORT_FUNC:
+                    dump_buf = 1; // make sure all data is read from socket 
+					//if (LOG_DEBUG) fprintf(stderr, "PX_REGISTER_PORT_FUNC=%d\n", temp_hdr_s.cmd & (int1u)PX_FUNC_MASK);
                     break;
-                }
-
-              case PX_FORWARD_FUNC:
-                {
-/**
- **ADD CMLOG LOGIC HERE FOR THE FORWARD HEADER (not data) IF NEEDED>
- **/
-
-                  dump_buf = 1; /* yes, we want to get stuff off socket */
-
-                  break;
-                  
-                }
+				case PX_FORWARD_FUNC:
+					//ADD CMLOG LOGIC HERE FOR THE FORWARD HEADER (not data) IF NEEDED>
+					dump_buf = 1; // yes, we want to get stuff off socket 
+					//if (LOG_DEBUG) fprintf(stderr, "PX_FORWARD_FUNC=%d\n", temp_hdr_s.cmd & (int1u)PX_FUNC_MASK);
+					break;
               case PX_FORWARD_ALIAS_FUNC:
-                {
-
-                  break;
-
-                }
-
+					//if (LOG_DEBUG) fprintf(stderr, "PX_FORWARD_ALIAS_FUNC=%d\n", temp_hdr_s.cmd & (int1u)PX_FUNC_MASK);
+					break;
               default:
-	        {
-                  if (LOG_FATAL)
-                      fprintf(stderr,"FWDC: No valid forwarding command! %i\n",
-                              temp_hdr_s.cmd);
-                  dump_buf = 1; /* make sure all data is read from socket */
+                  if (LOG_FATAL) fprintf(stderr,"FWDC: No valid forwarding command! %i\n", temp_hdr_s.cmd);
+                  dump_buf = 1; // make sure all data is read from socket 
                   break;
-                }
-            } /* end 'o case */
+			} // end 'o case 
 
 
-            /*
-	     * Remove any extra data from the socket if indicated.  If
-	     * no data needs to be removed then go back to select call.
-	     */
-dump_buf:   out_len = ntohl(temp_hdr_s.len);
+			// Remove any extra data from the socket if indicated.  If
+			// no data needs to be removed then go back to select call.
+			dump_buf: out_len = ntohl(temp_hdr_s.len);
 
-/*TODO CHECK USE OF DUMP_BUF LOGIC HERE AND ABOVE. 
-Is it kinda like an 'ok to proceed flag'? */
-
-            if ((dump_buf == 1) && (out_len > 0))
-	    {
-
+			//TODO CHECK USE OF DUMP_BUF LOGIC HERE AND ABOVE. 
+			// Is it kinda like an 'ok to proceed flag'? 
+            if ((dump_buf == 1) && (out_len > 0)) {
+				// sending structs, so shouldn't buffer always be the same size??
+				out_len = sizeof(err_msg_ts);  // resize out_len to struct size
+				//fprintf(stderr, "dump_buf=%d, out_len=%lu, sizeof(err_msg_ts)=%d\n", dump_buf, out_len, sizeof(err_msg_ts));
                 buff_ptr = (char *)calloc (1,out_len);  
-                                            /* RONM changed from malloc */
-/* buff_ptr contains the input from the socket */
-                if ((status = tcp_get (sock_fd, buff_ptr, 
-                                       out_len, &actual_cnt)) == ERROR)
-	        {
-                    if (LOG_FATAL)
-                       fprintf(stderr,"FWDC: dump data access error\n");
+              	// RONM changed from malloc 
+				// buff_ptr contains the input from the socket */
+                if ((status = tcp_get (sock_fd, buff_ptr, out_len, &actual_cnt)) == ERROR) {
+                    if (LOG_FATAL) fprintf(stderr,"FWDC: dump data access error\n");
                     fwd_child_death (real_ip_port_u);
                 }
 
-                if (actual_cnt != ntohl(temp_hdr_s.len))
-	        {
-                    if (LOG_FATAL)
-                        fprintf(stderr,"FWDC: dump data size error\n");
+/*				// sending structs, so shouldn't buffer always be the same size??
+                if (actual_cnt != ntohl(temp_hdr_s.len)) {
+                    if (LOG_FATAL) fprintf(stderr,"FWDC: dump data size error\n");
                     fwd_child_death (real_ip_port_u);
                 }
+*/
+				 // SEND TO cmlogServer.
+				err_msg_ps = (err_msg_ts *)buff_ptr;
 
+				temp_time = time(NULL);
+				if (LOG_DEBUG) fprintf(stderr, "Current RAW* time is: %d \n", temp_time);
+				temp_time = htonl(err_msg_ps->fwd_err_msg_s.time);
+		        if(LOG_DEBUG) { 
+//					fprintf(stderr, "Buffer RAW* time is:  %d \n", temp_time);
+					fprintf(stderr, "Buffer ctime time is: %28.28s \n", ctime(&temp_time));
+//					fprintf(stderr, "Test time is: %28.28s \n", asctime(localtime(&temp_time)));
+		        }
 
- 
+/*		      	{     
+				struct tm * tm_ps;
+				tm_ps = localtime(&temp_time);
+				if(LOG_DEBUG) {
+	               strftime(s,100,"%c",localtime(&temp_time));
+	               fprintf(stderr, "strftime is: %28.28s \n", s);
+		       	}
+				}
+*/
+				// Null terminate the host. 
+				sprintf (host, "%-.15s", err_msg_ps->fwd_err_msg_s.host);
+				// Null terminate the facility 
+				sprintf (facility, "%-.39s", err_msg_ps->fwd_err_msg_s.facility);
+				// Null terminate the user 
+				sprintf (user, "%-.39s", err_msg_ps->fwd_err_msg_s.user);
+				// Convert the unix time we were passed to host format. 
+				temp_time = htonl(err_msg_ps->fwd_err_msg_s.time); 
+				// Fix up the error code DELETE THIS 
+				sprintf (temp_error_code, "%20.20s",
+				err_msg_ps->fwd_err_msg_s.error_code);
+				// Null terminate the servity character value 
+				sprintf (severity, "%4.4s", err_msg_ps->fwd_err_msg_s.severity_char);
 
-/**
- ** SEND TO cmlogServer.
- **/
-
-               err_msg_ps = (err_msg_ts *)buff_ptr;
-		/*
-		char temp[MAX_MESSAGE_SIZE];
-		strncpy(temp, err_msg_ps, out_len);
-		strcat(temp, "\n");
-		fprintf(stderr, "err_msg_ps=%s\n", err_msg_ps);
-		fprintf(stderr, "temp=%s\n", temp);
-		fprintf(stderr, "temp_hdr_s.len=%x\n", temp_hdr_s.len);        
-		sprintf(temp, "%4s\n", err_msg_ps->msg_hdr_s.source);       
-		fprintf(stderr, "msg_hdr_s=%s\n", temp);  
-		fprintf(stderr, "fwd_hdr_ts=%d, msg_hdr_s=%d fwd_err_msg_s=%d\n", sizeof(fwd_hdr_ts), sizeof(err_msg_ps->msg_hdr_s), sizeof(err_msg_ps->fwd_err_msg_s));
-		fprintf(stderr, "time_t=%d, int=%d\n", sizeof(time_t), sizeof(int));
-		sprintf(temp, "%40s\n", err_msg_ps->fwd_err_msg_s.facility);
-		fprintf(stderr, "temp.facility=%s\n", temp);
-		*/
-
-		/**DEBUG **/
-if (LOG_DEBUG)
-               fprintf(stderr,"Got the msg DATA part, sending to CMLOG SERVER.\n");
-
-               temp_time = time(NULL);
-if (LOG_DEBUG)
-               fprintf(stderr, "Current RAW* time is: %d \n",
-                      temp_time);
-
-               temp_time = htonl(err_msg_ps->fwd_err_msg_s.time);
-	        if(LOG_DEBUG) {
-               fprintf(stderr, "Buffer RAW* time is:  %d \n",
-                       temp_time);
-
-               fprintf(stderr, "Buffer ctime time is: %28.28s \n",
-                       ctime(&temp_time));
-
-               fprintf(stderr, "Test time is: %28.28s \n",
-                       asctime(localtime(&temp_time)));
-               
-	        }
-	      {     
-   
-               struct tm * tm_ps;
-
-               tm_ps = localtime(&temp_time);
-	       if(LOG_DEBUG) {
-                 /* fprintf(stderr, "tm.hour = %d\n", tm_ps->tm_hour); */
-              
-
-               strftime(s,100,"%c",localtime(&temp_time));
-               fprintf(stderr, "strftime is: %28.28s \n", s);
-	       }
-	      }
-
-	       /* Null terminate the host. */
-               sprintf (host, "%-.15s", err_msg_ps->fwd_err_msg_s.host);
-               /* Null terminate the facility */  
-               sprintf (facility, "%-.39s", err_msg_ps->fwd_err_msg_s.facility);
-               /* Null terminate the user */  
-               sprintf (user, "%-.39s", err_msg_ps->fwd_err_msg_s.user);
-	           /* Convert the unix time we were passed to host format. */
-               temp_time = htonl(err_msg_ps->fwd_err_msg_s.time); 
-               /* Fix up the error code DELETE THIS */
-               sprintf (temp_error_code, "%20.20s",
-                        err_msg_ps->fwd_err_msg_s.error_code);
-               /* Null terminate the servity character value */
-               sprintf (severity, "%4.4s", err_msg_ps->fwd_err_msg_s.severity_char);
-
-		if(LOG_DEBUG) {
-               fprintf(stderr, "Buffer facility is: %s \n",
-                       err_msg_ps->fwd_err_msg_s.facility);
-
-               fprintf(stderr, "Buffer host is: %15.15s \n",
-                       err_msg_ps->fwd_err_msg_s.host);
-
-               fprintf(stderr, "Buffer user is: %39.39s \n",
-                       err_msg_ps->fwd_err_msg_s.user);
-
-               fprintf(stderr, "Buffer severity char is: %4.4s \n",
-                       err_msg_ps->fwd_err_msg_s.severity_char);
-
-               fprintf(stderr, "Buffer error code is: %20.20s \n",
-                       err_msg_ps->fwd_err_msg_s.error_code);
-
-               fprintf(stderr, "Buffer string is: %s \n",
-                        err_msg_ps->fwd_err_msg_s.msg_str);
-	       fprintf(stderr, "Buffer string strlen is: %d \n",
-                        strlen(err_msg_ps->fwd_err_msg_s.msg_str));
-            
-		}
-
-
-	       if(LOG_DEBUG) {
-               printf("**** err_code_char is: %s \n",temp_error_code);
-               printf("**** about to send facility = %s \n",facility);
-               }
+				if(LOG_DEBUG) {
+					fprintf(stderr, "Buffer facility is: %s \n", err_msg_ps->fwd_err_msg_s.facility);
+					fprintf(stderr, "Buffer host is: %15.15s \n", err_msg_ps->fwd_err_msg_s.host);
+					fprintf(stderr, "Buffer user is: %39.39s \n", err_msg_ps->fwd_err_msg_s.user);
+					fprintf(stderr, "Buffer severity char is: %4.4s \n", err_msg_ps->fwd_err_msg_s.severity_char);
+					fprintf(stderr, "Buffer error code is: %20.20s \n", err_msg_ps->fwd_err_msg_s.error_code);
+					fprintf(stderr, "Buffer string is: %s \n", err_msg_ps->fwd_err_msg_s.msg_str);
+					fprintf(stderr, "Buffer string strlen is: %d \n", strlen(err_msg_ps->fwd_err_msg_s.msg_str));            
+					fprintf(stderr, "**** err_code_char is: %s \n",temp_error_code);
+					fprintf(stderr, "**** about to send facility = %s \n",facility);
+				}
 
 #ifdef USE_LOGSERVER
 
-               if (!logServer_connected_)
-		 connect_logServer();
+				// make sure connected to oracle
+				if (!logServer_connected_) connect_logServer();
 
-//fprintf(stderr, "host=%16s, facility=%40s, user=%40s, code=%20s, severity=%4s\n", err_msg_ps->fwd_err_msg_s.host, err_msg_ps->fwd_err_msg_s.facility, err_msg_ps->fwd_err_msg_s.user, err_msg_ps->fwd_err_msg_s.error_code, err_msg_ps->fwd_err_msg_s.severity_char);
+				//fprintf(stderr, "host=%16s, facility=%40s, user=%40s, code=%20s, severity=%4s\n", err_msg_ps->fwd_err_msg_s.host, err_msg_ps->fwd_err_msg_s.facility, err_msg_ps->fwd_err_msg_s.user, err_msg_ps->fwd_err_msg_s.error_code, err_msg_ps->fwd_err_msg_s.severity_char);
+	            char output[1056];
 
-               char output[1056];
+				// DO THE NULL TERMINATES FROM ABOVE 
+		       	// Null terminate the host. 
+	         	sprintf (host, "%-.15s", err_msg_ps->fwd_err_msg_s.host); 
+	           	trim(host);
+	            // Null terminate the facility 
+	          	sprintf (facility, "%-.39s", err_msg_ps->fwd_err_msg_s.facility);
+	           	trim(facility);
+				// Null terminate the user 
+	            sprintf (user, "%-.39s", err_msg_ps->fwd_err_msg_s.user);
+	         	trim(user);
+				// Convert the unix time we were passed to host format. 
+	          	temp_time = htonl(err_msg_ps->fwd_err_msg_s.time); 
+	          	// Fix up the error code DELETE THIS 
+	          	sprintf (temp_error_code, "%-.19s", err_msg_ps->fwd_err_msg_s.error_code);
+				trim(temp_error_code);
+	           	// Null terminate the servity character value 
+	          	sprintf (severity, "%-.4s", err_msg_ps->fwd_err_msg_s.severity_char);
+				trim(severity);
 
-               // DO THE NULL TERMINATES FROM ABOVE 
-	       // Null terminate the host. 
-               sprintf (host, "%-.15s", err_msg_ps->fwd_err_msg_s.host); 
-           trim(host);
-
-               // Null terminate the facility 
-               sprintf (facility, "%-.39s", err_msg_ps->fwd_err_msg_s.facility);
-           trim(facility);
-
-               // Null terminate the user 
-               sprintf (user, "%-.39s", err_msg_ps->fwd_err_msg_s.user);
-           trim(user);
-
-	       // Convert the unix time we were passed to host format. 
-               //temp_time = htonl(err_msg_ps->fwd_err_msg_s.time); 
-
-               // Fix up the error code DELETE THIS 
-               sprintf (temp_error_code, "%-.19s", err_msg_ps->fwd_err_msg_s.error_code);
-		trim(temp_error_code);
-               // Null terminate the servity character value 
-               sprintf (severity, "%-.4s", err_msg_ps->fwd_err_msg_s.severity_char);
-		trim(severity);
-
-				/* prepend SLC if coming from mcc or MCC host */
-				/* copy facility to longer string */				
+				// prepend SLC if coming from mcc or MCC host 
+				// copy facility to longer string 
 				if ((strncmp(host, "MCC", 3)==0) || (strncmp(host, "mcc.", 4)==0)) {
 					strcpy(thefacility, "SLC-");
 					strncat(thefacility, facility, 35);
@@ -720,94 +545,44 @@ if (LOG_DEBUG)
 					strcpy(thefacility, facility);
 				}					
 
-/* TO DO: MORE TAGS! ? */
-               /* NOW SEND THE WHOLE MESSAGE WITH TAGS */
-/*	       sprintf(output, "fac=%s host=%s user=%s %s\n", facility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); */ 
-	       sprintf(output, "fac=%s host=%s user=%s %s\n", thefacility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); 
-               //char test[1056];
-		//sprintf(test, "fac=%s host=%s user=%s code=%s sevr=%s %s\n", thefacility, host, user, temp_error_code, severity, err_msg_ps->fwd_err_msg_s.msg_str);
-		//fprintf(stderr, "test=%s\n", test);
-/* THIS IS OUTPUT FOR SLC TESTING 9/27/11 */
-		fprintf(stderr, "===> SENDING TO LOGSERVER: %s", output);
-               /* USED TO BE MESSAGE ONLY
-	       sprintf(output, "%s\n", err_msg_ps->fwd_err_msg_s.msg_str);
-               */
+				// TO DO: MORE TAGS! ? 
+	            // NOW SEND THE WHOLE MESSAGE WITH TAGS 
+				// sprintf(output, "fac=%s host=%s user=%s %s\n", facility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); */ 
+		       	//sprintf(output, "fac=%s host=%s user=%s %s\n", thefacility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); 
+	            //char test[1056];
+				//sprintf(output, "fac=%s host=%s user=%s code=%s sevr=%s %s\n", thefacility, host, user, temp_error_code, severity, err_msg_ps->fwd_err_msg_s.msg_str);
+				/* THIS IS OUTPUT FOR SLC TESTING 9/27/11 */
+				fprintf(stderr, "===> SENDING TO LOGSERVER: %s", output);
 
-               if (logServer_connected_) {
-                 logClientSend(id_, output);
-                 logClientFlush(id_);
-	       }
-
-		memset(err_msg_ps->fwd_err_msg_s.time, '\0', sizeof(err_msg_ps->fwd_err_msg_s.time));
-		memset(err_msg_ps->fwd_err_msg_s.facility, '\0', sizeof(err_msg_ps->fwd_err_msg_s.facility));
-		memset(err_msg_ps->fwd_err_msg_s.host, '\0', sizeof(err_msg_ps->fwd_err_msg_s.host));
-		memset(err_msg_ps->fwd_err_msg_s.user, '\0', sizeof(err_msg_ps->fwd_err_msg_s.user));
-		memset(err_msg_ps->fwd_err_msg_s.severity_int, '\0', sizeof(err_msg_ps->fwd_err_msg_s.severity_int));
-		memset(err_msg_ps->fwd_err_msg_s.severity_char, '\0', sizeof(err_msg_ps->fwd_err_msg_s.severity_char));
-		memset(err_msg_ps->fwd_err_msg_s.error_code, '\0', sizeof(err_msg_ps->fwd_err_msg_s.error_code));
-		memset(err_msg_ps->fwd_err_msg_s.spare, '\0', sizeof(err_msg_ps->fwd_err_msg_s.spare));
-		memset(err_msg_ps->fwd_err_msg_s.msg_str, '\0', sizeof(err_msg_ps->fwd_err_msg_s.msg_str));
-
+				//fprintf(stderr, "fwd_hdr_ts=%d, msg_hdr_s=%d fwd_err_msg_s=%d\n", sizeof(fwd_hdr_ts), sizeof(err_msg_ps->msg_hdr_s), sizeof(err_msg_ps->fwd_err_msg_s));
+				if (logServer_connected_) {
+					logClientSend(id_, output);
+	               	logClientFlush(id_);
+		       	}
 #else
+		       	// There's a bug in cmlog time processing.  We pass the vms timestamp from the error message in the "time"
+	           	// cdev tag but don't ever use it in the browser.  That's because the cmlog client code timestamps  error messages
+	           	// in the cmlogTime cdev tag and we can't use that one because cmlog client will just write over anything we put in there
+	           	// with it's own time stamp.  Jie said he will fix that in the next release where we can pass a value ourselves.
+				// Epics messaes have the the timestamp  in cmlogTime, so we want to use that tag too so that the time shows
+				// up on the browser using one tag for slc and epics. So for now, we let cmlog client code timestamp the vms mesage
+				// instead of using the timestamp that came from vms.  But, we do pass the vms timestamp in the 'time' cdev tag in case 
+				// anyone wants to look at it.	
+		
+				// Ship the message to cmlogServer with this cmlog API call 
+	           	status = cmlog_logmsg (cl,         /* cmlog_client_t handle */
+	                           64,    /* verbosity (length)  THESE NEED DEFINES*/
+	                           0,     /* cdev tag = severity (integer) */
+	                           0,     /* cdev tag = code (integer) */
+	                           user,          /* cdev tag = facility */
+	                           "time = %s process = %s host = %s severity = %s code = %s status = %d text = %s", 
+		                       ctime(&temp_time),      /*format specifier,like C*/
+	                           facility, host, severity, temp_error_code, err_msg_ps->fwd_err_msg_s.severity_int, err_msg_ps->fwd_err_msg_s.msg_str); 
+#endif  // end if use_logserver 
+				// continue;  We're using dump_buf logic to get msg off sock
+               	free(buff_ptr);                 
 
-	       /* There's a bug in cmlog time processing.  We pass the
-                * vms timestamp from the error message in the "time"
-                * cdev tag but don't ever use it in the browser.  That's
-                * because the cmlog client code timestamps  error messages
-                * in the cmlogTime cdev tag and we can't use that one because
-                * cmlog client will just write over anything we put in there
-                * with it's own time stamp.  Jie said he will fix that in
-                * the next release where we can pass a value ourselves.
-                * Epics messaes have the the timestamp  in cmlogTime, so
-                * we want to use that tag too so that the time shows
-                * up on the browser using one tag for slc and epics.
-                * So for now, we let cmlog client code timestamp the vms mesage
-                * instead of using the timestamp that came from vms.  But,
-                * we do pass the vms timestamp in the 'time' cdev tag in case 
-                * anyone wants to look at it.
-                */
-
-               /* 
-	       /*
-		* Ship the message to cmlogServer with this cmlog API call 
-                */
-               status = cmlog_logmsg (cl,         /* cmlog_client_t handle */
-                           64,    /* verbosity (length)  THESE NEED DEFINES*/
-                           0,     /* cdev tag = severity (integer) */
-                           0,     /* cdev tag = code (integer) */
-                           user,          /* cdev tag = facility */
-                           /* 
-                            * It's interesting that we can override the tags 
-                            * in the paramters above with explicit tag 
-                            * settings below.  For example, I set severity
-                            * and code below.
-                            */
-                           "time = %s process = %s host = %s severity = %s code = %s status = %d text = %s", 
-                                                  /*format specifier,like C*/
-                            ctime(&temp_time),
-                            facility, 
-                            host, 
-                            severity,
-                            temp_error_code,
-                            err_msg_ps->fwd_err_msg_s.severity_int,
-                            err_msg_ps->fwd_err_msg_s.msg_str); 
-
-#endif   /* end if use_logserver */
-
-/*
-    printf ("Just logged msg with severity_int = %d \n",
-             err_msg_ps->fwd_err_msg_s.severity_int);
-*/
-
-               free (buff_ptr);
-
-                /** continue;  We're using dump_buf logic to get msg off sock
-                **/
-
-            }
-
-
-
+            } // endif dump_buf and out_len
         } /* endif readfds for socket is set in select */
     } /* end of main child while loop */
 
