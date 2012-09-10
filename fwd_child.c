@@ -132,81 +132,81 @@ cmlog_client_t cl;           /* client handle. global cauz child_death needs */
 ============================================================================*/
 
 void trim(char s[]) {
-    int ptr;
-    int len;
+	int ptr;
+	int len;
 
-    if (!s)
-        return NULL;   // handle NULL string
-    if (!*s)
-        return s;      // handle empty string
-    len = strlen(s);
-    for (ptr = 0 + len - 1; (ptr >= 0) && isspace(s[ptr]); --ptr);
-    s[ptr+1] = '\0';
-    return s;
+	if (!s)
+		return NULL;   // handle NULL string
+	if (!*s)
+		return s;      // handle empty string
+	len = strlen(s);
+	for (ptr = 0 + len - 1; (ptr >= 0) && isspace(s[ptr]); --ptr);
+		s[ptr+1] = '\0';
+	return s;
 }
 
 int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 {
-    int             i;
-    int             pid;              /* returned from cache lookup */
-    int             dump_buf;         /* flag to force a TCp buffer dump */
-    int             bytes_written;    /* return from write()for local socket */
-    int             fd_setsize;       /* bit mask size for select */
-    int             send_fd_setsize;  /* bit mask size for select */
-    int             num_descr;        /* number of descr return from select */
-    int             num_send_descr;   /* number of descr return from select */
-    int             true = TRUE;      /* used in socket option calls */
-    int             actual_cnt;       /* number of TCP bytes returned */
-    int             nchars;           /* counter for send and receive */
-    int             flags = 1;        /* flags for the child death routine */
-    int             num_messages;     /* check on entries in a local socket */
-    int             alloc_flag;       /* allow re-try of failed allocs */
-    int             status;
-    time_t          temp_time;        /* holds unix time (seconds) */
+	int             i;
+	int             pid;              /* returned from cache lookup */
+	int             dump_buf;         /* flag to force a TCp buffer dump */
+	int             bytes_written;    /* return from write()for local socket */
+	int             fd_setsize;       /* bit mask size for select */
+	int             send_fd_setsize;  /* bit mask size for select */
+	int             num_descr;        /* number of descr return from select */
+	int             num_send_descr;   /* number of descr return from select */
+	int             true = TRUE;      /* used in socket option calls */
+	int             actual_cnt;       /* number of TCP bytes returned */
+	int             nchars;           /* counter for send and receive */
+	int             flags = 1;        /* flags for the child death routine */
+	int             num_messages;     /* check on entries in a local socket */
+	int             alloc_flag;       /* allow re-try of failed allocs */
+	int             status;
+	time_t          temp_time;        /* holds unix time (seconds) */
 
+	unsigned long   block_cmd;        /* setup blocking sckets */
+	unsigned long   out_len;          /* place to store output length */
+	unsigned long   lookup_flag;      /* tell routine what vlue to use */
+	unsigned char   local_cmd;        /* use to store a fwd_hdr command */
+	char           *buff_ptr;         /* a place to hold the calloc ptr */
+	char            err_msg_buf[132]; /* Place to build messages SLC size */
+	char            ip_port_to_string[] = {0,0,0,0,0}; /* make string */
 
-    unsigned long   block_cmd;        /* setup blocking sckets */
-    unsigned long   out_len;          /* place to store output length */
-    unsigned long   lookup_flag;      /* tell routine what vlue to use */
-    unsigned char   local_cmd;        /* use to store a fwd_hdr command */
-    char           *buff_ptr;         /* a place to hold the calloc ptr */
-    char            err_msg_buf[132]; /* Place to build messages SLC size */
-    char            ip_port_to_string[] = {0,0,0,0,0}; /* make string */
+	fd_set          readfds;          /* desc ready for reading */
+	fd_set          writefds;         /* desc ready for writing */
+	struct timeval  timeout_s;        /* timeout for read select call */
+	struct timeval  send_timeout_s;   /* timeout for send select call */
+	struct timeval  tv_s;             /* timeout for delay select call */
+	struct sockaddr_un dest_name;     /* place to make UNIX socket address */
 
-    fd_set          readfds;          /* desc ready for reading */
-    fd_set          writefds;         /* desc ready for writing */
-    struct timeval  timeout_s;        /* timeout for read select call */
-    struct timeval  send_timeout_s;   /* timeout for send select call */
-    struct timeval  tv_s;             /* timeout for delay select call */
-    struct sockaddr_un dest_name;     /* place to make UNIX socket address */
+	pipe_ts         pipe_s;           /* structure to send to local socket */
+	ip_port_tu      lookup_key_u;     /* pass hash value to cache_lookup */
+	ip_port_tu      real_ip_port_u;   /* Place to make up ip/port longword */
+	fwd_hdr_ts      temp_hdr_s;       /* a place to fiddle with data in */
+	fwd_hdr_ts     *temp_hdr_ps;      /* a place to fiddle with data out */
+	fwd_cache_ts   *our_cache_ps;     /* data about this child */
+	fwd_cache_ts   *cache_ps;         /* data about the child pointed to */
 
-    pipe_ts         pipe_s;           /* structure to send to local socket */
-    ip_port_tu      lookup_key_u;     /* pass hash value to cache_lookup */
-    ip_port_tu      real_ip_port_u;   /* Place to make up ip/port longword */
-    fwd_hdr_ts      temp_hdr_s;       /* a place to fiddle with data in */
-    fwd_hdr_ts     *temp_hdr_ps;      /* a place to fiddle with data out */
-    fwd_cache_ts   *our_cache_ps;     /* data about this child */
-    fwd_cache_ts   *cache_ps;         /* data about the child pointed to */
-
-    char cmlog_name[] = "fwdCliS";    /* pass this name to cmlog as our name */
+	char cmlog_name[] = "fwdCliS";    /* pass this name to cmlog as our name */
 	char thefacility[40];
+	char output[1056];
 
-    /** USE DEFINES FOR THESE SIZES */
+	/** USE DEFINES FOR THESE SIZES */
 
 	typedef struct              /* Typedef for the thing that holds error message*/
 	{                           /* from vms.  The vms client sender has same. */
-	  /****  char          time[8];  ****/
-	  time_t        time;                /* unix time in network order */
-	/**  char          facility[8]; */
-	  char          facility[40];
-	  char          host[16];
-	/**  char          user[4]; */
-	  char          user[40];
-	  int4u         severity_int;        /* integer form of severity     */
-	  char          severity_char[4];    /* e.g. info, warn, err, ...    */
-	  char          error_code[20];        
-	  char          spare[8];
-	  char          msg_str[280];        /*  message string, null terminated. */
+		/****  char          time[8];  ****/
+		time_t        time;                /* unix time in network order */
+		/**  char          facility[8]; */
+		char          facility[40];
+		char          host[16];
+		/**  char          user[4]; */
+		char          user[40];
+		int4u         severity_int;        /* integer form of severity     */
+		char          severity_char[4];    /* e.g. info, warn, err, ...    */
+		char          error_code[20];        
+		char          spare[8];
+		char          msg_str[280];        /*  message string, null terminated. */
 	} fwd_err_msg_ts;
 
 	/*
@@ -215,24 +215,22 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 	*/
 
 	typedef struct {
-	   char          source[4];
-	   char          dest[4];
-	   int4u         timestamp[2];
-	   int2u         func;
-	   int2u         datalen;
+		char          source[4];
+		char          dest[4];
+		int4u         timestamp[2];
+		int2u         func;
+		int2u         datalen;
 	} msgheader_ts;
 	          
 
 	typedef struct {
-	  msgheader_ts msg_hdr_s;             /* sms header */
-	  fwd_err_msg_ts fwd_err_msg_s;       /* the error message itself. */
+		msgheader_ts msg_hdr_s;             /* sms header */
+		fwd_err_msg_ts fwd_err_msg_s;       /* the error message itself. */
 	} err_msg_ts;    /* Holds data part of message which is sms_hdr + err msg. */
-
 
 	err_msg_ts *err_msg_ps;
 
 	char message[256];
-
 	char host[24];
 	char facility[40]; /* store facility temporally */
 	char severity[8];  /* store severity temp */
@@ -241,171 +239,158 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 	char temp_error_code[20]; /* store error code temp. */
 	char s[100];  /* store time here temporarally */
 
-
-
 	/*********************************  CODE **********************************/
 
+	/**DEBUG??? IS THIS NEEDED?  real_ is used for error messages if nothing else*/
+	/* 
+	* Makeup the local ip_port word for this child.  Used as the definitive
+	* identification for this connection.  Assumption is that there can
+	* only be one connection for each port on a single IP node
+	*/
+	real_ip_port_u.s.ip = ip;
+	real_ip_port_u.s.port = port;
 
+	fprintf(stderr,"real_ip_port: IP=%X, port=%d\n", real_ip_port_u.s.ip, real_ip_port_u.s.port);
 
-/**DEBUG??? IS THIS NEEDED?  real_ is used for error messages if nothing else*/
-    /* 
-     * Makeup the local ip_port word for this child.  Used as the definitive
-     * identification for this connection.  Assumption is that there can
-     * only be one connection for each port on a single IP node
-     */
-    real_ip_port_u.s.ip = ip;
-    real_ip_port_u.s.port = port;
+	// Connect to epics logServer
+	connect_logServer();
 
-
-#ifdef USE_LOGSERVER
-    // Connect to epics logServer
-    connect_logServer();
-#else
-	cl = cmlog_open (cmlog_name);
-	if (cl == 0) {
-		if (LOG_FATAL) { fprintf(stderr,"FWDC: cmlog_open failed\n"); }
-        fwd_child_death (real_ip_port_u);
-    }
-
-    sprintf(message, "fwdCliS Child process spawned to handle connection\n");
-    status = cmlog_logmsg (cl,         /* cmlog_client_t handle */
-                           32,         /* verbosity (length) */
-                            0,         /* severity     THESE NEED DEFINES*/
-                            0,         /* message code       */
-                           "fwdCliS",  /* facility           */
-                           "text = %s", /* format specifier, like C */
-                           message);    /* item list for that specifier */
-#endif
-
-     // turn on KEEPALIVE so if the client crashes this task will find out and exit
-    status = setsockopt(sock_fd, SOL_SOCKET, SO_KEEPALIVE, (char *)&true, sizeof true);
-    if (status == ERROR) {
-        if (LOG_FATAL) { fprintf(stderr,"FWDC: SO_KEEPALIVE option set failed\n"); }
-        fwd_child_death (real_ip_port_u);
-    }
+	// turn on KEEPALIVE so if the client crashes this task will find out and exit
+	status = setsockopt(sock_fd, SOL_SOCKET, SO_KEEPALIVE, (char *)&true, sizeof true);
+	if (status == ERROR) {
+		if (LOG_FATAL) { fprintf(stderr,"FWDC: SO_KEEPALIVE option set failed\n"); }
+		fwd_child_death (real_ip_port_u);
+	}
 
 	// set TCP input and output buffer sizes 
 	i = MAX_MESSAGE_SIZE * 2;
 	status = setsockopt(sock_fd, SOL_SOCKET, SO_SNDBUF, (char *)&i, sizeof(i));
-    if (status < 0) {
-        if (LOG_FATAL) { fprintf(stderr,"FWDC: SO_SNDBUF set failed\n"); }
-        fwd_child_death (real_ip_port_u);
-    }
+	if (status < 0) {
+		if (LOG_FATAL) { fprintf(stderr,"FWDC: SO_SNDBUF set failed\n"); }
+		fwd_child_death (real_ip_port_u);
+	}
 
-    i = MAX_MESSAGE_SIZE * 2;
-    status = setsockopt(sock_fd, SOL_SOCKET, SO_RCVBUF, (char *)&i, sizeof(i));
-    if (status < 0) {
-        if (LOG_FATAL) { fprintf(stderr,"FWDC: SO_RCVBUF set failed\n"); }
-        fwd_child_death (real_ip_port_u);
-    }
+	i = MAX_MESSAGE_SIZE * 2;
+	status = setsockopt(sock_fd, SOL_SOCKET, SO_RCVBUF, (char *)&i, sizeof(i));
+	if (status < 0) {
+		if (LOG_FATAL) { fprintf(stderr,"FWDC: SO_RCVBUF set failed\n"); }
+		fwd_child_death (real_ip_port_u);
+	}
 
-    /*
-     * Disable the Nagle alg to force packets out, NOW!
-     * 1 = TCP_NODELAY (Nagle off)  : 0 = Nagle ON
-     *
-     * The VMS host code does not do looping TCP reads when it reads the
-     * fwd_header so if a fwd_header is split between two ethernet packets
-     * it will note an error and close the connection.  When the Nagle alg
-     * is enabled there is a good chance that a fwd_header will be split
-     * between to ethernet packets so this is explicitly turned off here.
-     * This does create additional ethernet traffic but since most transfers
-     * fit into one ethernet packet it's not a huge increase. 
-     *
-     * If the Nagle alg MUST be turned on then we must insure that a 
-     * fwd_header is not split between two ethernet packets (yea right) 
-     * or change te the VMS host code to do a looping read on the fwd_header.
-     * The VMS change is a difficult one but is easier than trying to insure
-     * packet sizes here in the proxy
-     */
-    i = 1;  /* the off flag */
-    status = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&i, sizeof(i));
-    if (status < 0) {
-        if (LOG_FATAL) { fprintf(stderr,"FWDC: TCP_NODELAY set failed\n"); }
-        fwd_child_death (real_ip_port_u);
-    }
+	/*
+	* Disable the Nagle alg to force packets out, NOW!
+	* 1 = TCP_NODELAY (Nagle off)  : 0 = Nagle ON
+	*
+	* The VMS host code does not do looping TCP reads when it reads the
+	* fwd_header so if a fwd_header is split between two ethernet packets
+	* it will note an error and close the connection.  When the Nagle alg
+	* is enabled there is a good chance that a fwd_header will be split
+	* between to ethernet packets so this is explicitly turned off here.
+	* This does create additional ethernet traffic but since most transfers
+	* fit into one ethernet packet it's not a huge increase. 
+	*
+	* If the Nagle alg MUST be turned on then we must insure that a 
+	* fwd_header is not split between two ethernet packets (yea right) 
+	* or change te the VMS host code to do a looping read on the fwd_header.
+	* The VMS change is a difficult one but is easier than trying to insure
+	* packet sizes here in the proxy
+	*/
+	i = 1;  /* the off flag */
+	status = setsockopt(sock_fd, IPPROTO_TCP, TCP_NODELAY, (char *)&i, sizeof(i));
+	if (status < 0) {
+		if (LOG_FATAL) { fprintf(stderr,"FWDC: TCP_NODELAY set failed\n"); }
+		fwd_child_death (real_ip_port_u);
+	}
 
     // Tell the user the status of the child connection
-	if (LOG_INFO) {
-       fprintf(stderr,"FWDC: Received connection request \n ");
-       /**
-       fprintf(stderr,"from addr %x, port %d ", 
-                our_cache_ps->real_ip_port_u.s.ip,
-                our_cache_ps->real_ip_port_u.s.port);
-       fprintf(stderr,"local socket name is %s \n", our_cache_ps->unix_name);
-       **/
-    }
+	if (LOG_DEBUG) {
+		fprintf(stderr,"FWDC: Received connection request from addr %x, port %d local socket name is %s \n", 
+		        our_cache_ps->real_ip_port_u.s.ip, our_cache_ps->real_ip_port_u.s.port, our_cache_ps->unix_name);
+	}
 
-    /*
-     *************************************************************************
-     * Start the main child loop
-     *     
-     * The child loop which looks for data from either the socket or
-     * the local socket. The data is then forwarded and the loop begins again.
-     * The UNIX sockets were used for interprocess communications so that
-     * a single select call can wait for both new data from a TCP socket or
-     * a new forwarding request from a UNIX socket.
-     *
-     * We never exit this loop.  We exit through child_death instead.
-     */
-    while (1) {
+	/*
+	*************************************************************************
+	* Start the main child loop
+	*     
+	* The child loop which looks for data from either the socket or
+	* the local socket. The data is then forwarded and the loop begins again.
+	* The UNIX sockets were used for interprocess communications so that
+	* a single select call can wait for both new data from a TCP socket or
+	* a new forwarding request from a UNIX socket.
+	*
+	* We never exit this loop.  We exit through child_death instead.
+	*/
+	// allocate memory for data buff
+	buff_ptr = (err_msg_ts*)malloc(sizeof(err_msg_ts));
+
+	while (1) {
 		//Setup the select call timeout data. 
 		timeout_s.tv_sec = SELECT_TIMEOUT;
 		timeout_s.tv_usec = 0;
 
 		// Zero descriptors, set desc for new socket, set size then go see if there is data to read from the socket.
-        FD_ZERO ((fd_set *) &readfds);
-	    // FD_SET (unix_fd, (fd_set *) &readfds); 
-        FD_SET (sock_fd, (fd_set *) &readfds);
-        fd_setsize = FD_SETSIZE;
+		//FD_ZERO ((fd_set *) &readfds);
+		FD_ZERO (&readfds);
+		// FD_SET (unix_fd, (fd_set *) &readfds); 
+		//FD_SET (sock_fd, (fd_set *) &readfds);
+		FD_SET (sock_fd, &readfds);
+		//fd_setsize = FD_SETSIZE;
+		fd_setsize = sock_fd+1;
 
-        if ((num_descr = select (fd_setsize, &readfds, NULL, NULL, &timeout_s)) == ERROR) {
+		fprintf(stderr, "before select FD_SETSIZE=%d, sock_fd=%d, num_descr=%d\n", fd_setsize, sock_fd, num_descr);
+
+		if ((num_descr = select (fd_setsize, &readfds, NULL, NULL, &timeout_s)) == ERROR) {
 			if (LOG_FATAL) { fprintf(stderr,"FWDC: select error\n"); }
-            fwd_child_death (real_ip_port_u);
-        }
-        if (num_descr == 0) {
-            if (LOG_FATAL) { fprintf(stderr,"FWDC: select timeout! exiting...\n"); }
-            fwd_child_death (real_ip_port_u);
-        }        
+			fwd_child_death (real_ip_port_u);
+		}
+		if (num_descr == 0) {
+			if (LOG_FATAL) { fprintf(stderr,"FWDC: select timeout! exiting...\n"); }
+			fwd_child_death (real_ip_port_u);
+		}        
+
+		fprintf(stderr, "FD_SETSIZE=%d, sock_fd=%d, num_descr=%d\n", fd_setsize, sock_fd, num_descr);
 		
 		//*************************************************************
 		// If there is I/O pending at the network socket, handle it!
 		// This is data coming INTO the forward server
-		if (LOG_DEBUG) { fprintf(stderr,"\n\n NEW MSG IS HERE***. Select just completed in child.\n"); }
+		//if (LOG_DEBUG) { fprintf(stderr,"\n\n NEW MSG IS HERE***. Select just completed in child.\n"); }
 		if (FD_ISSET(sock_fd, (fd_set *) &readfds)) {
-            if (LOG_DEBUG) fprintf(stderr,"FWDC: Child Message Socket Signal\n");
-            dump_buf = 0; /* Setup to not dump buffer after header */
+			if (LOG_DEBUG) {
+				fprintf(stderr,"-----------------------------------------------\n");
+				fprintf(stderr,"FWDC: Child Message Socket Signal\n");
+			}
+			dump_buf = 0; /* Setup to not dump buffer after header */
 
-            // Get the header information to get buffer alloc size
-            if (status = tcp_get (sock_fd, (char *)&temp_hdr_s, sizeof(fwd_hdr_ts), &actual_cnt) == ERROR) {
+			// Get the header information to get buffer alloc size
+			if (status = tcp_get (sock_fd, (char *)&temp_hdr_s, sizeof(fwd_hdr_ts), &actual_cnt) == ERROR) {
 				if (LOG_FATAL) fprintf(stderr,"FWDC: header access error\n");
-                fwd_child_death (real_ip_port_u);
-            }
+				fwd_child_death (real_ip_port_u);
+			}
 
-             // Check for a wrong length in the forward header.  Hopefully
-             // this is usually a zero length indicating a normal disconnected
-             // socket, anyway close the socket and go away...
-            if (actual_cnt != sizeof(fwd_hdr_ts)) {
-                if (LOG_FATAL) fprintf(stderr,"FWDC: header size error\n");
-                fwd_child_death (real_ip_port_u);
-            }
+			// Check for a wrong length in the forward header.  Hopefully
+			// this is usually a zero length indicating a normal disconnected
+			// socket, anyway close the socket and go away...
+			if (actual_cnt != sizeof(fwd_hdr_ts)) {
+				if (LOG_FATAL) fprintf(stderr,"FWDC: header size error\n");
+				fwd_child_death (real_ip_port_u);
+			}
 
 			// Check that the packet is not too big for us to handle.  If
 			// it is then we have no choice but to die since the serial
 			// stream will be corrupt.  One day you could think of finding the
 			// next good header in the stream and continuing from there.
-            if (ntohl(temp_hdr_s.len) > MAX_MESSAGE_SIZE) {
-                fprintf(stderr,"FWDC: Child Message Too BIG! len = %x \n", ntohl(temp_hdr_s.len));
-                fwd_child_death (real_ip_port_u);
-            }
+			if (ntohl(temp_hdr_s.len) > MAX_MESSAGE_SIZE) {
+				fprintf(stderr,"FWDC: Child Message Too BIG! len = %x \n", ntohl(temp_hdr_s.len));
+				fwd_child_death (real_ip_port_u);
+			}
 
-            if (LOG_DEBUG) {
-               fprintf(stderr,"FWDC: Child Message Header Verified\n");
-               fprintf(stderr,"Child Rx: IP= %x,  port=%x, len=%x, user=%x, cmd=%x, crc=%x \n",
-                            ntohs(temp_hdr_s.ip_port_u.s.ip), ntohs(temp_hdr_s.ip_port_u.s.port),
-                            ntohl(temp_hdr_s.len), temp_hdr_s.user, temp_hdr_s.cmd, temp_hdr_s.crc);
-            }
-
-               
+			if (LOG_DEBUG) {
+				fprintf(stderr,"FWDC: Child Message Header Verified\n");
+				fprintf(stderr,"Child Rx: IP= %x,  port=%x, len=%x, user=%x, cmd=%x, crc=%x \n",
+					ntohs(temp_hdr_s.ip_port_u.s.ip), ntohs(temp_hdr_s.ip_port_u.s.port),
+					ntohl(temp_hdr_s.len), temp_hdr_s.user, temp_hdr_s.cmd, temp_hdr_s.crc);
+			}
+              
 			// TODO CHECK THIS DUMP_BUF STUFF. 
 
 			// Find out what the user wants us todo with this packet.  Correct
@@ -414,25 +399,25 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 
 			switch (temp_hdr_s.cmd & (int1u)PX_FUNC_MASK) {
 				case PX_REGISTER_FUNC:  // Really the Register Alias command 
-                    dump_buf = 0;  // We don't get anything more off sock 
-					//if (LOG_DEBUG) fprintf(stderr, "PX_REGISTER_FUNC=%d\n", temp_hdr_s.cmd & (int1u)PX_FUNC_MASK);
-                    break;
+					dump_buf = 0;  // We don't get anything more off sock 
+					if (LOG_DEBUG) fprintf(stderr, "PX_REGISTER_FUNC=%d\n", temp_hdr_s.cmd & (int1u)PX_FUNC_MASK);
+				break;
 				case PX_REGISTER_PORT_FUNC:
-                    dump_buf = 1; // make sure all data is read from socket 
-					//if (LOG_DEBUG) fprintf(stderr, "PX_REGISTER_PORT_FUNC=%d\n", temp_hdr_s.cmd & (int1u)PX_FUNC_MASK);
-                    break;
+					dump_buf = 1; // make sure all data is read from socket 
+					if (LOG_DEBUG) fprintf(stderr, "PX_REGISTER_PORT_FUNC=%d\n", temp_hdr_s.cmd & (int1u)PX_FUNC_MASK);
+				break;
 				case PX_FORWARD_FUNC:
 					//ADD CMLOG LOGIC HERE FOR THE FORWARD HEADER (not data) IF NEEDED>
 					dump_buf = 1; // yes, we want to get stuff off socket 
-					//if (LOG_DEBUG) fprintf(stderr, "PX_FORWARD_FUNC=%d\n", temp_hdr_s.cmd & (int1u)PX_FUNC_MASK);
-					break;
-              case PX_FORWARD_ALIAS_FUNC:
-					//if (LOG_DEBUG) fprintf(stderr, "PX_FORWARD_ALIAS_FUNC=%d\n", temp_hdr_s.cmd & (int1u)PX_FUNC_MASK);
-					break;
-              default:
-                  if (LOG_FATAL) fprintf(stderr,"FWDC: No valid forwarding command! %i\n", temp_hdr_s.cmd);
-                  dump_buf = 1; // make sure all data is read from socket 
-                  break;
+					if (LOG_DEBUG) fprintf(stderr, "PX_FORWARD_FUNC=%d\n", temp_hdr_s.cmd & (int1u)PX_FUNC_MASK);
+				break;
+				case PX_FORWARD_ALIAS_FUNC:
+					if (LOG_DEBUG) fprintf(stderr, "PX_FORWARD_ALIAS_FUNC=%d\n", temp_hdr_s.cmd & (int1u)PX_FUNC_MASK);
+				break;
+				default:
+					if (LOG_FATAL) fprintf(stderr,"FWDC: No valid forwarding command! %i\n", temp_hdr_s.cmd);
+					dump_buf = 1; // make sure all data is read from socket 
+				break;
 			} // end 'o case 
 
 
@@ -442,43 +427,45 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 
 			//TODO CHECK USE OF DUMP_BUF LOGIC HERE AND ABOVE. 
 			// Is it kinda like an 'ok to proceed flag'? 
-            if ((dump_buf == 1) && (out_len > 0)) {
+			if ((dump_buf == 1) && (out_len > 0)) {
 				// sending structs, so shouldn't buffer always be the same size??
 				//out_len = sizeof(err_msg_ts);  // resize out_len to struct size, doesn't work for SLC msgs
-				//fprintf(stderr, "dump_buf=%d, out_len=%lu, sizeof(err_msg_ts)=%d\n", dump_buf, out_len, sizeof(err_msg_ts));				
-                buff_ptr = (char *)calloc (1,out_len);  
-              	// RONM changed from malloc 
+				fprintf(stderr, "dump_buf=%d, out_len=%lu, sizeof(err_msg_ts)=%d\n", dump_buf, out_len, sizeof(err_msg_ts));				
+				//buff_ptr = (char *)calloc (1,out_len);  
+				memset(buff_ptr, '\0', sizeof(err_msg_ts));
+				// RONM changed from malloc 
 				// buff_ptr contains the input from the socket */
-                if ((status = tcp_get (sock_fd, buff_ptr, out_len, &actual_cnt)) == ERROR) {
-                    if (LOG_FATAL) fprintf(stderr,"FWDC: dump data access error\n");
-                    fwd_child_death (real_ip_port_u);
-                }
+				if ((status = tcp_get(sock_fd, buff_ptr, out_len, &actual_cnt)) == ERROR) {
+					if (LOG_FATAL) fprintf(stderr,"FWDC: dump data access error\n");
+					fwd_child_death (real_ip_port_u);
+				}
 
 				// sending structs, but SLC is sending chopping off empty part of message text and sending shorter length in temp_hdr_s.len
-                if (actual_cnt != ntohl(temp_hdr_s.len)) {
-                    if (LOG_FATAL) fprintf(stderr,"FWDC: dump data size error\n");
-                    fwd_child_death (real_ip_port_u);
-                }
+				if (actual_cnt != ntohl(temp_hdr_s.len)) {
+					if (LOG_FATAL) fprintf(stderr,"FWDC: dump data size error\n");
+					fwd_child_death (real_ip_port_u);
+				}
 
-				 // SEND TO cmlogServer.
+				// SEND TO cmlogServer.
 				err_msg_ps = (err_msg_ts *)buff_ptr;
-				
+
+				// time is in the format 14-Feb-2012 14:24:02.09
 				temp_time = time(NULL);
 				if (LOG_DEBUG) fprintf(stderr, "Current RAW* time is: %d \n", temp_time);
 				temp_time = htonl(err_msg_ps->fwd_err_msg_s.time);
-		        if(LOG_DEBUG) { 
-//					fprintf(stderr, "Buffer RAW* time is:  %d \n", temp_time);
-					fprintf(stderr, "Buffer ctime time is: %28.28s \n", ctime(&temp_time));
-//					fprintf(stderr, "Test time is: %28.28s \n", asctime(localtime(&temp_time)));
-		        }
-
-/*		      	{     
+				if(LOG_DEBUG) { 
+					//					fprintf(stderr, "Buffer RAW* time is:  %d \n", temp_time);
+					fprintf(stderr, "Buffer ctime time is: %28.28s", ctime(&temp_time));
+					//					fprintf(stderr, "Test time is: %28.28s \n", asctime(localtime(&temp_time)));
+				}
+/*
+				{     
 				struct tm * tm_ps;
 				tm_ps = localtime(&temp_time);
 				if(LOG_DEBUG) {
-	               strftime(s,100,"%c",localtime(&temp_time));
-	               fprintf(stderr, "strftime is: %28.28s \n", s);
-		       	}
+					strftime(s,100,"%c",localtime(&temp_time));
+					fprintf(stderr, "strftime is: %28.28s \n", s);
+				}
 				}
 */
 				// Null terminate the host. 
@@ -490,14 +477,19 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 				// Convert the unix time we were passed to host format. 
 				temp_time = htonl(err_msg_ps->fwd_err_msg_s.time); 
 				// Fix up the error code DELETE THIS 
-				sprintf (temp_error_code, "%20.20s",
-				err_msg_ps->fwd_err_msg_s.error_code);
+				sprintf (temp_error_code, "%-.19s", err_msg_ps->fwd_err_msg_s.error_code);
 				// Null terminate the servity character value 
-				sprintf (severity, "%4.4s", err_msg_ps->fwd_err_msg_s.severity_char);
+				sprintf (severity, "%-.4s", err_msg_ps->fwd_err_msg_s.severity_char);
 
 				if(LOG_DEBUG) {
-					fprintf(stderr, "Buffer facility is: %s \n", err_msg_ps->fwd_err_msg_s.facility);
-					fprintf(stderr, "Buffer host is: %15.15s \n", err_msg_ps->fwd_err_msg_s.host);
+					fprintf(stderr, " facility=%s\n", facility);
+					fprintf(stderr, " host=%s\n", host);
+					fprintf(stderr, " user=%s\n", user);
+					fprintf(stderr, " severity char=%4s\n", severity);
+					fprintf(stderr, " error code=%s\n", temp_error_code);
+					fprintf(stderr, " msg=%s\n", err_msg_ps->fwd_err_msg_s.msg_str);
+					fprintf(stderr, " msg len=%d \n", strlen(err_msg_ps->fwd_err_msg_s.msg_str));            
+/*					fprintf(stderr, "host=%15.15s\n", err_msg_ps->fwd_err_msg_s.host);
 					fprintf(stderr, "Buffer user is: %39.39s \n", err_msg_ps->fwd_err_msg_s.user);
 					fprintf(stderr, "Buffer severity char is: %4.4s \n", err_msg_ps->fwd_err_msg_s.severity_char);
 					fprintf(stderr, "Buffer error code is: %20.20s \n", err_msg_ps->fwd_err_msg_s.error_code);
@@ -505,6 +497,7 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 					fprintf(stderr, "Buffer string strlen is: %d \n", strlen(err_msg_ps->fwd_err_msg_s.msg_str));            
 					fprintf(stderr, "**** err_code_char is: %s \n",temp_error_code);
 					fprintf(stderr, "**** about to send facility = %s \n",facility);
+*/
 				}
 
 #ifdef USE_LOGSERVER
@@ -513,25 +506,26 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 				if (!logServer_connected_) connect_logServer();
 
 				//fprintf(stderr, "host=%16s, facility=%40s, user=%40s, code=%20s, severity=%4s, msg=%s\n", err_msg_ps->fwd_err_msg_s.host, err_msg_ps->fwd_err_msg_s.facility, err_msg_ps->fwd_err_msg_s.user, err_msg_ps->fwd_err_msg_s.error_code, err_msg_ps->fwd_err_msg_s.severity_char, err_msg_ps->fwd_err_msg_s.msg_str);
-	            char output[1056];
+				//char output[1056];
+				memset(output, '\0', sizeof(output));
 
 				// DO THE NULL TERMINATES FROM ABOVE 
-		       	// Null terminate the host. 
-	         	sprintf (host, "%-.15s", err_msg_ps->fwd_err_msg_s.host); 
-	           	trim(host);
-	            // Null terminate the facility 
-	          	sprintf (facility, "%-.39s", err_msg_ps->fwd_err_msg_s.facility);
-	           	trim(facility);
+				// Null terminate the host. 
+				sprintf (host, "%-.15s", err_msg_ps->fwd_err_msg_s.host); 
+				trim(host);
+				// Null terminate the facility 
+				sprintf (facility, "%-.39s", err_msg_ps->fwd_err_msg_s.facility);
+				trim(facility);
 				// Null terminate the user 
-	            sprintf (user, "%-.39s", err_msg_ps->fwd_err_msg_s.user);
-	         	trim(user);
+				sprintf (user, "%-.39s", err_msg_ps->fwd_err_msg_s.user);
+				trim(user);
 				// Convert the unix time we were passed to host format. 
-	          	temp_time = htonl(err_msg_ps->fwd_err_msg_s.time); 
-	          	// Fix up the error code DELETE THIS 
-	          	sprintf (temp_error_code, "%-.19s", err_msg_ps->fwd_err_msg_s.error_code);
+				temp_time = htonl(err_msg_ps->fwd_err_msg_s.time); 
+				// Fix up the error code DELETE THIS 
+				sprintf (temp_error_code, "%-.19s", err_msg_ps->fwd_err_msg_s.error_code);
 				trim(temp_error_code);
-	           	// Null terminate the servity character value 
-	          	sprintf (severity, "%-.4s", err_msg_ps->fwd_err_msg_s.severity_char);
+				// Null terminate the servity character value 
+				sprintf (severity, "%-.4s", err_msg_ps->fwd_err_msg_s.severity_char);
 				trim(severity);
 
 				// prepend SLC if coming from mcc or MCC host 
@@ -546,10 +540,10 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 				}					
 
 				// TO DO: MORE TAGS! ? 
-	            // NOW SEND THE WHOLE MESSAGE WITH TAGS 
+				// NOW SEND THE WHOLE MESSAGE WITH TAGS 
 				// sprintf(output, "fac=%s host=%s user=%s %s\n", facility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); */ 
-		       	//sprintf(output, "fac=%s host=%s user=%s %s\n", thefacility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); 
-	            //char test[1056];
+				//sprintf(output, "fac=%s host=%s user=%s %s\n", thefacility, host, user, err_msg_ps->fwd_err_msg_s.msg_str); 
+				//char test[1056];
 				sprintf(output, "fac=%s host=%s user=%s code=%s sevr=%s %s\n", thefacility, host, user, temp_error_code, severity, err_msg_ps->fwd_err_msg_s.msg_str);
 				/* THIS IS OUTPUT FOR SLC TESTING 9/27/11 */
 				fprintf(stderr, "===> SENDING TO LOGSERVER: %s", output);
@@ -557,34 +551,36 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 				//fprintf(stderr, "fwd_hdr_ts=%d, msg_hdr_s=%d fwd_err_msg_s=%d\n", sizeof(fwd_hdr_ts), sizeof(err_msg_ps->msg_hdr_s), sizeof(err_msg_ps->fwd_err_msg_s));
 				if (logServer_connected_) {
 					logClientSend(id_, output);
-	               	logClientFlush(id_);
-		       	}
+					logClientFlush(id_);
+					fprintf(stderr, "Sent to logServer\n");
+				}
 #else
-		       	// There's a bug in cmlog time processing.  We pass the vms timestamp from the error message in the "time"
-	           	// cdev tag but don't ever use it in the browser.  That's because the cmlog client code timestamps  error messages
-	           	// in the cmlogTime cdev tag and we can't use that one because cmlog client will just write over anything we put in there
-	           	// with it's own time stamp.  Jie said he will fix that in the next release where we can pass a value ourselves.
+				// There's a bug in cmlog time processing.  We pass the vms timestamp from the error message in the "time"
+				// cdev tag but don't ever use it in the browser.  That's because the cmlog client code timestamps  error messages
+				// in the cmlogTime cdev tag and we can't use that one because cmlog client will just write over anything we put in there
+				// with it's own time stamp.  Jie said he will fix that in the next release where we can pass a value ourselves.
 				// Epics messaes have the the timestamp  in cmlogTime, so we want to use that tag too so that the time shows
 				// up on the browser using one tag for slc and epics. So for now, we let cmlog client code timestamp the vms mesage
 				// instead of using the timestamp that came from vms.  But, we do pass the vms timestamp in the 'time' cdev tag in case 
 				// anyone wants to look at it.	
-		
+
 				// Ship the message to cmlogServer with this cmlog API call 
-	           	status = cmlog_logmsg (cl,         /* cmlog_client_t handle */
-	                           64,    /* verbosity (length)  THESE NEED DEFINES*/
-	                           0,     /* cdev tag = severity (integer) */
-	                           0,     /* cdev tag = code (integer) */
-	                           user,          /* cdev tag = facility */
-	                           "time = %s process = %s host = %s severity = %s code = %s status = %d text = %s", 
-		                       ctime(&temp_time),      /*format specifier,like C*/
-	                           facility, host, severity, temp_error_code, err_msg_ps->fwd_err_msg_s.severity_int, err_msg_ps->fwd_err_msg_s.msg_str); 
+				status = cmlog_logmsg (cl,         /* cmlog_client_t handle */
+										64,    /* verbosity (length)  THESE NEED DEFINES*/
+										0,     /* cdev tag = severity (integer) */
+										0,     /* cdev tag = code (integer) */
+										user,          /* cdev tag = facility */
+										"time = %s process = %s host = %s severity = %s code = %s status = %d text = %s", 
+										ctime(&temp_time),      /*format specifier,like C*/
+										facility, host, severity, temp_error_code, err_msg_ps->fwd_err_msg_s.severity_int, err_msg_ps->fwd_err_msg_s.msg_str); 
 #endif  // end if use_logserver 
 				// continue;  We're using dump_buf logic to get msg off sock
-               	free(buff_ptr);                 
+				//fprintf(stderr, "FREEd buff_ptr\n");
+				//free(buff_ptr);                 
 
-            } // endif dump_buf and out_len
-        } /* endif readfds for socket is set in select */
-    } /* end of main child while loop */
+			} // endif dump_buf and out_len
+		} /* endif readfds for socket is set in select */
+	} /* end of main child while loop */
 
     /*
      *  ????????????????    free_client(client); 
@@ -617,19 +613,16 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
   Ret:
 
 ============================================================================*/
-static int tcp_get (int sock_fd, char *buff, int request_cnt, int *actual_cnt)
+static int tcp_get(int sock_fd, char *buff, int request_cnt, int *actual_cnt)
 {
 
-int  nchars;
-int  bytes_left;
-long status = 0;
-int  iss = 0;
+	int  nchars;
+	int  bytes_left;
+	long status = 0;
+	int  iss = 0;
 
     bytes_left = request_cnt; /* let's get all the bytes */
-
-    while (bytes_left > 0)
-    {
-
+    while (bytes_left > 0) {
       /*
        * do we want a select cal here to try and not block waiting for data?
        * We usually get here from a select call but some protections might
@@ -637,47 +630,29 @@ int  iss = 0;
        *
        *  if (flag == USE_SELECT) then use it with timeout in seconds
        */
-        nchars = recv(sock_fd, (buff + (request_cnt - bytes_left)),
-                      bytes_left, 0);
-        if (nchars==0)
-        {
-            if(LOG_ERROR)
-            {
-               fprintf(stderr,"FWDC: zero length TCP recv\n");
-            }
+        nchars = recv(sock_fd, (buff + (request_cnt - bytes_left)), bytes_left, 0);
+        if (nchars==0) {
+            if(LOG_ERROR) fprintf(stderr,"FWDC: zero length TCP recv\n");
             iss = ERROR;
             break;
-        }
-        else if(nchars<=0)
-        {
+        } else if (nchars<=0) {
             perror ("FWDC:");
-            /*
-             * normal conn lost conditions
-             */
-            if( (status!=ECONNABORTED && 
-                 status!=ECONNRESET && 
-                 status!=ETIMEDOUT)
-                 || LOG_FATAL)
-            {
-              fprintf(stderr,"FWDC: client disconnect - errno=%d, sock_fd=%d\n",
-                        errno, sock_fd);
-            }
-            else
-	    {
-               fprintf(stderr,"FWDC: child TCP recv error - errno=%d\n",
-                        status);
+            // normal conn lost conditions
+            if ((status!=ECONNABORTED && status!=ECONNRESET && status!=ETIMEDOUT) || LOG_FATAL) {
+              fprintf(stderr,"FWDC: client disconnect - errno=%d, sock_fd=%d\n", errno, sock_fd);
+            } else {
+               fprintf(stderr,"FWDC: child TCP recv error - errno=%d\n", status);
             }
             iss = ERROR;
             break;
-        }
-        else if(nchars > 0)
-	{
+        } else if(nchars > 0) {
             bytes_left -= nchars;
         }
     }/* end of while loop */
 
     *actual_cnt = request_cnt - bytes_left;
 
+	fprintf(stderr, "tcp_get(): actual_cnt=%d, request_cnt=%d, bytes_left=%d\n", *actual_cnt, request_cnt, bytes_left);
     return (iss);
 } /* end 'o  wrapper */
 

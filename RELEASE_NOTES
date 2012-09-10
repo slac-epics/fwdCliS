@@ -9,7 +9,7 @@
 #  Rev:  dd-mmm-yyyy, Reviewer's Name    (USERNAME)
 #--------------------------------------------------------------
 fwdCliS-R1-2-3: 09/06/2012
-  Don't hardcode buffer out_len because SLC truncating structure for empty part of message
+  Don't hardcode buffer out_len because SLC truncating struct for empty part of message
    (Java err sending full message/struct every time)
 
 fwdCliS-R1-2-2: 09/06/2012
