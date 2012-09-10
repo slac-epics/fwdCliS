@@ -330,10 +330,10 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 
 		// Zero descriptors, set desc for new socket, set size then go see if there is data to read from the socket.
 		//FD_ZERO ((fd_set *) &readfds);
-		FD_ZERO (&readfds);
+		FD_ZERO(&readfds);
 		// FD_SET (unix_fd, (fd_set *) &readfds); 
 		//FD_SET (sock_fd, (fd_set *) &readfds);
-		FD_SET (sock_fd, &readfds);
+		FD_SET(sock_fd, &readfds);
 		//fd_setsize = FD_SETSIZE;
 		fd_setsize = sock_fd+1;
 
