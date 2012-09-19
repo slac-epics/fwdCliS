@@ -28,7 +28,7 @@ if [ $HOSTNAME == "lcls-prod02" ]; then
   #jrock test version
   #/u/cd/jrock/work_iocLogServer/cmlogFwdClis/fwdCliS-WORKING-PROTOTYPE
   #fwdCliS-WORKING-PROTOTYPE
-  ./fwdCliS
+  ../../../bin/linux-x86/fwdCliS
 else
 #  echo NOT ON cdlx03!
   echo NOT ON lcls-prod02!
