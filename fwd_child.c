@@ -300,11 +300,13 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 		fwd_child_death (real_ip_port_u);
 	}
 
-    // Tell the user the status of the child connection
-	if (LOG_DEBUG) {
-		fprintf(stderr,"FWDC: Received connection request from addr %x, port %d local socket name is %s \n", 
-		        our_cache_ps->real_ip_port_u.s.ip, our_cache_ps->real_ip_port_u.s.port, our_cache_ps->unix_name);
-	}
+        // Tell the user the status of the child connection
+        //  TODO: This debug statement will segfault since our_cache_ps is never initialized.
+        //        Fix this if this information is useful
+        // if (LOG_DEBUG) {
+        //     fprintf(stderr,"FWDC: Received connection request from addr %x, port %d local socket name is %s \n", 
+        //             our_cache_ps->real_ip_port_u.s.ip, our_cache_ps->real_ip_port_u.s.port, our_cache_ps->unix_name);
+        // }
 
 	/*
 	*************************************************************************
