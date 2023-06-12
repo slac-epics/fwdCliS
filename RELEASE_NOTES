@@ -8,6 +8,11 @@
 #  Auth: 24-July-2012, N. Fong         (NIAFONG)
 #  Rev:  dd-mmm-yyyy, Reviewer's Name    (USERNAME)
 #--------------------------------------------------------------
+fwdCliS-R1.2.7: 06/12/2023 Jesse Bellister (jesseb)
+  Fix an issue where the application would segfault upon printing a debug message.
+  Update code to run correctly on 64 bit machines, use of unsigned longs was causing
+  an issue in which message headers were being misinterpreted.
+
 fwdCliS-R1-2-5: 09/25/2012
   Remove MCC and mcc host check for SLC messages, host is not reliable source of filtering.
     Looks like SLC messages already have incoming unique user fields.
