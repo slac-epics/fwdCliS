@@ -20,6 +20,9 @@
 ------------------------------------------------------------------------------
  
   Mod:  (newest to oldest)
+       12-Jul-2023, Jesse Bellister
+          Fix issue where a debug statement was causing a segfault
+          Update code for 64 bit support (no longer assume longs are 4 bytes)
        26-Oct-2007, Ron MacKenzie
           Small change to make gcc compiler happy for lcls linux.
           Add compile time option to log to logServer instead of cmlogServer.
@@ -72,11 +75,7 @@ static char *version_info = "fwdCliS.c 1.0 07/30/99, 07/30/99";
 
 #include "fwd_server.h" 
 
-/* FOR SLC TESTING 9/27/11 */
-#define LOG_DEBUG 1 
-/*
-#define LOG_DEBUG 0 
-*/
+#define LOG_DEBUG 0
 
 /*
  * Since the GNU source for 2.0.36 doesn't include TCP_NODELAY I have to make
