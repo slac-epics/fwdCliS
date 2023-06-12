@@ -19,6 +19,8 @@
           
         MODIFIED PROXY FORWARD SERVER BY RONM TO BE CMLOG FOWAARD PROGRAM.
 
+        12-Jun-2023, Jesse Bellister (JESSEB)
+           Update struct fields for 64 bit upgrade (unsigned long -> uint32_t)
         16-Feb-1999, Mark Crane (MARK)
            clean up a bit, add gethostname to log correctly
         12-Nov-1998, Mark Crane (MARK):
@@ -38,6 +40,7 @@ static char *version_info = "fwd_err.c    .01 06/23/97";
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -60,7 +63,7 @@ typedef struct
 {
    char           source[4];
    char           dest[4];
-   unsigned long  timestamp[2];
+   uint32_t       timestamp[2];
    unsigned short func;
    unsigned short datalen;
  } msgheader_ts;
@@ -81,8 +84,8 @@ int fwd_err(char* err_cp)
   char            temp_name_c[MAX_HOSTNAME_LEN];
                                     /* BIG place to get hostname */
   static char     Src_c[4];         /* keep the source name until death */
-  unsigned long   out_len;          /* place to store output length */
-  unsigned long   lookup_flag;      /* tell routine what value to use */
+  uint32_t        out_len;          /* place to store output length */
+  uint32_t        lookup_flag;      /* tell routine what value to use */
   size_t          total_size;       /* total size of the buffer to send */ 
   size_t          fwd_size;         /* total size of the forward payload */ 
   size_t          sms_size;         /* total size of the SMS payload */ 

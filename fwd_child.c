@@ -53,6 +53,7 @@ static char *version_info = "fwdCliS.c 1.0 07/30/99, 07/30/99";
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <sys/ioctl.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -193,12 +194,9 @@ int fwd_child (int sock_fd, int unix_fd, int ip, int port, int qos)
 
 	typedef struct              /* Typedef for the thing that holds error message*/
 	{                           /* from vms.  The vms client sender has same. */
-		/****  char          time[8];  ****/
-		time_t        time;                /* unix time in network order */
-		/**  char          facility[8]; */
+		int32_t       time;                /* unix time in network order */
 		char          facility[40];
 		char          host[16];
-		/**  char          user[4]; */
 		char          user[40];
 		int4u         severity_int;        /* integer form of severity     */
 		char          severity_char[4];    /* e.g. info, warn, err, ...    */

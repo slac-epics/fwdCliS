@@ -15,6 +15,8 @@
 ------------------------------------------------------------------------------
 
   Mod:
+        12-Jun-2023, Jesse Bellister (JESSEB)
+          Update for 64 bit upgrade (unsigned long -> uint32_t)        
         11-Feb-1999, Mark Crane (MARK)
            a little cleanup
         12-Jan-1999, Mark Crane (MARK)
@@ -35,6 +37,8 @@
 #ifndef FWD_SERVER_H
 #define FWD_SERVER_H
 
+#include <stdint.h>
+
 /*
  * How about the nice SLC typedefs here while we are at it.  Remove these
  * if this header ever moves closer to VMS
@@ -42,7 +46,7 @@
 typedef short             int2;           /* An I*2 */
 typedef unsigned short    int2u;          /* An unsigned I*2 */
 typedef long int          int4;           /* An I*4 */
-typedef unsigned long int int4u;          /* An unsigned I*4 */
+typedef uint32_t          int4u;          /* An unsigned I*4 */
 typedef unsigned char     int1u;          /* For unsigned byte arithmetic */
 typedef unsigned char     charu;          /* For unsigned byte arithmetic */
 typedef int4u             vmsstat_t;       /* VMS type status stays 32 bits */
@@ -144,13 +148,13 @@ typedef struct
 typedef union 
 {
   ip_port_ts      s;    /* structure access */
-  unsigned long   word; /* long word access */
+  uint32_t        word; /* long word access */
 } ip_port_tu;
 
 typedef struct
 {
   ip_port_tu      ip_port_u; /* ip and port values */
-  unsigned long   len;       /* stream length max minus sizeof(this header) */
+  uint32_t        len;       /* stream length max minus sizeof(this header) */
   unsigned short  user;      /* user defined could be chunk count for buffs */
   unsigned char   cmd;       /* fwd_server application command, like ping */
   unsigned char   crc;       /* ones complement checksum over the header */ 
@@ -194,7 +198,7 @@ typedef struct
   int           state;          /* how is this entry used? */
   ip_port_tu    real_ip_port_u; /* real ip and port values  */
   ip_port_tu    tag_ip_port_u;  /* real or smashed ip and port values */
-  unsigned long alias;          /* user hash value, usually SLC id chars */
+  uint32_t      alias;          /* user hash value, usually SLC id chars */
   int           sock_fd;        /* socket descriptor of connection to peer */ 
   int           unix_fd;        /* file desc of Unix socket to child */
   char          unix_name[PIPE_NAME_SIZE];
@@ -216,7 +220,7 @@ typedef struct
 {
   char          *buff_p;       /* pointer to buffer with header + data */
   ip_port_tu     ip_port_u;    /* where this packet came from */
-  unsigned long  time;         /* store tick count when packet came in */
+  uint32_t       time;         /* store tick count when packet came in */
 } pipe_ts;
 
 
